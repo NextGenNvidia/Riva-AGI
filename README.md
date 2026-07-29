@@ -9,4 +9,4 @@
 - **Chirag Gupta** - Agents LLM and tool calling
 - **Ankit Kumar Singh** - Voice/Speech (STT-TTS)
 - **Anushka Gupta** - System Software
-- **Chirag** - Multi-Agent Orchestration
+- **Chirag Tejasvi** - Multi-Agents and Orchestration
