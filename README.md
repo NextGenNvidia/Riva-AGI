@@ -9,3 +9,4 @@
 - **Chirag Gupta** - Agents LLM and tool calling
 - **Ankit Kumar Singh** - Voice/Speech (STT-TTS)
 - **Anushka Gupta** - System Software
+- **Akansh Dwivedi** - Deployment(MLOPs)
