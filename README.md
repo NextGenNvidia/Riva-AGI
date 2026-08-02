@@ -12,3 +12,5 @@
 - **Garima Singh** - Integration/APIs
 - **Akansh Dwivedi** - Deployment(MLOPs)
 - **Ayush Pathak** - RAG / Knowledge Base
+- **Khushi Tripathi** - Agents LLM and Tool Calling
+
