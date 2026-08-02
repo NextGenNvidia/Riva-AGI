@@ -9,4 +9,8 @@
 - **Chirag Gupta** - Agents LLM and tool calling
 - **Ankit Kumar Singh** - Voice/Speech (STT-TTS)
 - **Anushka Gupta** - System Software
+- **Garima Singh** - Integration/APIs
+- **Akansh Dwivedi** - Deployment(MLOPs)
+- **Ayush Pathak** - RAG / Knowledge Base
 - **Khushi Tripathi** - Agents LLM and Tool Calling
+
