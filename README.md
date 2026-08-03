@@ -15,3 +15,4 @@
 - **Khushi Tripathi** - Agents LLM and Tool Calling
 - **Chirag Tejasvi** - Multi-Agents and Orchestration
 - **Kishan Singh** - Voice/Speech (STT-TTS)
+- **Rishu Soni** - Multi-Agents and Orchestration
