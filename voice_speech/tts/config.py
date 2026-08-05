@@ -50,6 +50,8 @@ def _load_env_file() -> None:
             except Exception:
                 pass
 
+_load_env_file()
+
 
 # ---------------------------------------------------------------------------
 # Backend-level config
