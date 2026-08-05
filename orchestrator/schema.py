@@ -192,6 +192,11 @@ if __name__ == "__main__":
         execution_time_ms=42.5,
         metadata={"model_used": "gemini-2.5-flash", "tokens_used": 150}
     )
+    print("AgentResponse instance created successfully!")
+    print(f"Agent ID: {agent_response.agent_id}")
+    print(f"Status: {agent_response.status}")
+    print(f"Content: {agent_response.content}")
+    print(f"Requested Tool Calls: {len(agent_response.tool_calls)} call(s)")
 
     # Step 4: Serialize to JSON (How data is transmitted over networks/queues)
     print("\n--- STEP 4: Serialized JSON Response (Data Transmission Format) ---")
