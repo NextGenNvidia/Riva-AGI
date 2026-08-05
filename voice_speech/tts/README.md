@@ -81,13 +81,11 @@ AZURE_SPEECH_REGION="eastus"
 Runs 25 tests with mocked backends. Works immediately after setup.
 
 ```bash
-cd /home/user/Desktop/voice_speech/tts
+# Option A: From root repository directory (/home/user/Desktop/voice_speech)
+.venv/bin/python -m pytest voice_speech/tts/tests/unit/test_unit.py -v
 
-# Full verbose output
-.venv/bin/python -m pytest tests/test_unit.py -v
-
-# Short summary only
-.venv/bin/python -m pytest tests/test_unit.py -q
+# Option B: From TTS module directory (/home/user/Desktop/voice_speech/tts/voice_speech/tts)
+python3 -m pytest tests/unit/test_unit.py -v
 ```
 
 **Expected result:**
@@ -397,48 +395,51 @@ Make sure your API keys are added in `.env` (or environment variables), then run
 
 ```bash
 # ==============================================================================
-# 1. Unit Tests (28 tests — no API keys or network required)
+# 1. Run Unit Test Suite (29 Mocked Tests)
 # ==============================================================================
-.venv/bin/python -m pytest tests/test_unit.py -v
+# From repo root:
+.venv/bin/python -m pytest voice_speech/tts/tests/unit/test_unit.py -v
+# From tts directory:
+python3 -m pytest tests/unit/test_unit.py -v
 
 # ==============================================================================
 # 2. Check Backend Availability Status
 # ==============================================================================
-.venv/bin/python -c "from voice_speech.tts import TTSRouter; print(TTSRouter().status())"
+python3 -c "from voice_speech.tts import TTSRouter; print(TTSRouter().status())"
 
 # ==============================================================================
 # 3. Test ElevenLabs (Default API Engine — Highest Voice Quality)
 # ==============================================================================
-.venv/bin/python tests/test_elevenlabs_tts.py
-.venv/bin/python tests/test_elevenlabs_tts.py --play
+python3 tests/integration/test_elevenlabs_tts.py
+python3 tests/integration/test_elevenlabs_tts.py --play
 
 # ==============================================================================
 # 4. Test Cartesia Sonic (Latency-Critical Path — ~65ms TTFA)
 # ==============================================================================
-.venv/bin/python tests/test_cartesia_tts.py
-.venv/bin/python tests/test_cartesia_tts.py --play
+python3 tests/integration/test_cartesia_tts.py
+python3 tests/integration/test_cartesia_tts.py --play
 
 # ==============================================================================
 # 5. Test OpenAI TTS (Secondary API Engine)
 # ==============================================================================
-.venv/bin/python tests/test_openai_tts.py
-.venv/bin/python tests/test_openai_tts.py --play
-.venv/bin/python tests/test_openai_tts.py --play --model tts-1-hd --voice nova
+python3 tests/integration/test_openai_tts.py
+python3 tests/integration/test_openai_tts.py --play
+python3 tests/integration/test_openai_tts.py --play --model tts-1-hd --voice nova
 
 # ==============================================================================
 # 6. Test Azure Neural TTS (OpenAI Backup Path)
 # ==============================================================================
-.venv/bin/python tests/test_azure_tts.py
-.venv/bin/python tests/test_azure_tts.py --play
+python3 tests/integration/test_azure_tts.py
+python3 tests/integration/test_azure_tts.py --play
 
 # ==============================================================================
 # 7. Test Piper Local (Offline Fallback — $0 Cost)
 # ==============================================================================
 PIPER_BINARY=./piper/piper PIPER_MODEL=./models/en_US-lessac-medium.onnx \
-  .venv/bin/python tests/test_local_tts.py
+  python3 tests/integration/test_local_tts.py
 
 PIPER_BINARY=./piper/piper PIPER_MODEL=./models/en_US-lessac-medium.onnx \
-  .venv/bin/python tests/test_local_tts.py --play
+  python3 tests/integration/test_local_tts.py --play
 
 # ==============================================================================
 # 8. Inspect Session Request Log
