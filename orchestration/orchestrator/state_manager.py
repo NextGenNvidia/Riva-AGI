@@ -4,6 +4,7 @@ Tracks multi-step tasks as they route across agents to maintain context.
 """
 import logging
 from enum import Enum
+import threading
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 
@@ -41,47 +42,51 @@ class TaskStateManager:
     def __init__(self):
         # In-memory dictionary: task_id -> TaskState Pydantic Model
         self._tasks: Dict[str, TaskState] = {}
+        # Thread lock to prevent race conditions in async/multi-threaded flows
+        self._lock = threading.Lock()
 
     def start_task(self, task_id: str, initial_data: Dict[str, Any]) -> None:
         """Initialize a new task with strict Pydantic structures."""
-        if task_id in self._tasks:
-            raise ValueError(f"Task '{task_id}' already exists.")
-        self._tasks[task_id] = TaskState(
-            task_id=task_id,
-            current_step=1,
-            owner="orchestrator",
-            status=TaskStatus.IN_PROGRESS,
-            data=initial_data,
-            history=[]
-        )
+        with self._lock:
+            if task_id in self._tasks:
+                raise ValueError(f"Task '{task_id}' already exists.")
+            self._tasks[task_id] = TaskState(
+                task_id=task_id,
+                current_step=1,
+                owner="orchestrator",
+                status=TaskStatus.IN_PROGRESS,
+                data=initial_data,
+                history=[]
+            )
         logger.info(f"Task '{task_id}' started.")
 
     def update_task_state(self, task_id: str, new_owner: str, status: TaskStatus, step_data: Optional[Dict[str, Any]] = None) -> None:
         """Update the current state of a task as it routes to different agents."""
-        if task_id not in self._tasks:
-            logger.error(f"Failed to update state: Task {task_id} not found.")
-            raise ValueError(f"Task {task_id} not found.")
-        
-        state = self._tasks[task_id]
-        
-        # Log history
-        history_entry = TaskHistoryEntry(
-            step=state.current_step,
-            owner=state.owner,
-            status=state.status
-        )
-        state.history.append(history_entry)
-        logger.debug(f"Task '{task_id}' history logged for step {state.current_step}.")
-        
-        # Update state
-        state.current_step += 1
-        state.owner = new_owner
-        status = TaskStatus(status)
-        state.status = status
-        
-        if step_data is not None:
-            state.data.update(step_data)
+        with self._lock:
+            if task_id not in self._tasks:
+                logger.error(f"Failed to update state: Task {task_id} not found.")
+                raise ValueError(f"Task {task_id} not found.")
             
+            state = self._tasks[task_id]
+            
+            # Log history
+            history_entry = TaskHistoryEntry(
+                step=state.current_step,
+                owner=state.owner,
+                status=state.status
+            )
+            state.history.append(history_entry)
+            logger.debug(f"Task '{task_id}' history logged for step {state.current_step}.")
+            
+            # Update state
+            state.current_step += 1
+            state.owner = new_owner
+            status = TaskStatus(status)
+            state.status = status
+            
+            if step_data is not None:
+                state.data.update(step_data)
+                
         logger.info(f"Task '{task_id}' transitioned to '{new_owner}' with status '{status.value}'.")
 
     def get_task_status(self, task_id: str) -> Optional[TaskState]:
