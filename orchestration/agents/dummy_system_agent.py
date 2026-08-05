@@ -8,7 +8,6 @@ from orchestration.orchestrator.registry import registry, AgentCapabilities
 
 # Setup standard logger
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 @registry.register(
     name="dummy_system",
@@ -57,6 +56,7 @@ def dummy_orchestrator_router(task_request: str) -> str:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger.info("=== Testing Sub-Agent Registration & Routing (Task O4) ===")
     
     # Simulate a user request that requires system operations

@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 # Setup standard logger
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 class AgentCapabilities(BaseModel):
     """Strictly typed capabilities exposed by a registered agent."""
@@ -28,6 +27,8 @@ class AgentRegistry:
         """
         Decorator to register an agent function with Pydantic validated capabilities.
         """
+        if not isinstance(capabilities, AgentCapabilities):
+            capabilities = AgentCapabilities.model_validate(capabilities)
         def decorator(func: Callable):
             self._agents[name] = {
                 "handler": func,
@@ -54,6 +55,7 @@ registry = AgentRegistry()
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger.info("=== Running Registry Verification ===")
     
     # Test registry

@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 
 # Setup standard logger
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 class TaskStatus(str, Enum):
     """Enumeration of possible task statuses."""
@@ -26,6 +25,7 @@ class TaskHistoryEntry(BaseModel):
 
 class TaskState(BaseModel):
     """Strictly typed schema representing the current state of a task."""
+    model_config = {"validate_assignment": True}
     task_id: str = Field(..., description="Unique ID for the task.")
     current_step: int = Field(default=1, description="The current execution step number.")
     owner: str = Field(default="orchestrator", description="The agent currently owning the task.")
@@ -44,6 +44,8 @@ class TaskStateManager:
 
     def start_task(self, task_id: str, initial_data: Dict[str, Any]) -> None:
         """Initialize a new task with strict Pydantic structures."""
+        if task_id in self._tasks:
+            raise ValueError(f"Task '{task_id}' already exists.")
         self._tasks[task_id] = TaskState(
             task_id=task_id,
             current_step=1,
@@ -74,6 +76,7 @@ class TaskStateManager:
         # Update state
         state.current_step += 1
         state.owner = new_owner
+        status = TaskStatus(status)
         state.status = status
         
         if step_data is not None:
@@ -87,6 +90,7 @@ class TaskStateManager:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     # Test with a 3-step dummy task running across 2+ agents
     logger.info("=== Running State Manager Verification ===")
     manager = TaskStateManager()
@@ -99,4 +103,4 @@ if __name__ == "__main__":
     logger.info("--- Final Query of Task #101 Status ---")
     final_status = manager.get_task_status("task-101")
     if final_status:
-        print(final_status.model_dump_json(indent=2))
+        logger.info(final_status.model_dump_json(indent=2))
