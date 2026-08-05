@@ -406,46 +406,38 @@ source "../../.venv/bin/activate"   # From tts directory
 # ==============================================================================
 # 1. Run Unit Test Suite (29 Mocked Tests)
 # ==============================================================================
-# From repo root:
-.venv/bin/python -m pytest voice_speech/tts/tests/unit/test_unit.py -v
-
-# From tts directory:
-../../.venv/bin/python -m pytest tests/unit/test_unit.py -v
+pytest tests/unit/test_unit.py -v
 
 # ==============================================================================
 # 2. Check Backend Availability Status
 # ==============================================================================
-../../.venv/bin/python -c "from router import TTSRouter; print(TTSRouter().status())"
+python -c "from router import TTSRouter; print(TTSRouter().status())"
 
 # ==============================================================================
 # 3. Test ElevenLabs (Default API Engine — Highest Voice Quality)
 # ==============================================================================
-../../.venv/bin/python tests/integration/test_elevenlabs_tts.py
-../../.venv/bin/python tests/integration/test_elevenlabs_tts.py --play
+python tests/integration/test_elevenlabs_tts.py --play
 
 # ==============================================================================
 # 4. Test Cartesia Sonic (Latency-Critical Path — ~65ms TTFA)
 # ==============================================================================
-../../.venv/bin/python tests/integration/test_cartesia_tts.py
-../../.venv/bin/python tests/integration/test_cartesia_tts.py --play
+python tests/integration/test_cartesia_tts.py --play
 
 # ==============================================================================
 # 5. Test OpenAI TTS (Secondary API Engine)
 # ==============================================================================
-../../.venv/bin/python tests/integration/test_openai_tts.py
-../../.venv/bin/python tests/integration/test_openai_tts.py --play
+python tests/integration/test_openai_tts.py --play
 
 # ==============================================================================
 # 6. Test Azure Neural TTS (OpenAI Backup Path)
 # ==============================================================================
-../../.venv/bin/python tests/integration/test_azure_tts.py
-../../.venv/bin/python tests/integration/test_azure_tts.py --play
+python tests/integration/test_azure_tts.py --play
 
 # ==============================================================================
 # 7. Test Piper Local (Offline Fallback — $0 Cost)
 # ==============================================================================
 PIPER_BINARY=./piper/piper PIPER_MODEL=./models/en_US-lessac-medium.onnx \
-  ../../.venv/bin/python tests/integration/test_local_tts.py --play
+  python tests/integration/test_local_tts.py --play
 ```
 
 ---
