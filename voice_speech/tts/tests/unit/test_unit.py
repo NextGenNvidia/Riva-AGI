@@ -70,10 +70,16 @@ class _FakeBackend(TTSBackend):
         return 0.001 * len(text)
 
 
+def _temp_log_file() -> str:
+    tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
+    tmp.close()
+    return tmp.name
+
+
 def _make_router(**backend_overrides) -> TTSRouter:
     """Build a TTSRouter whose backends can be overridden with fakes."""
     config = RouterConfig(
-        log_file=tempfile.mktemp(suffix=".jsonl"),
+        log_file=_temp_log_file(),
         backend=BackendConfig(
             openai_api_key="test-key",
             cartesia_api_key="test-key",
@@ -203,7 +209,7 @@ class TestCloning:
     def test_cloning_flag_off_falls_back_with_warning(self, caplog):
         config = RouterConfig(
             enable_voice_cloning=False,
-            log_file=tempfile.mktemp(suffix=".jsonl"),
+            log_file=_temp_log_file(),
             backend=BackendConfig(),
         )
         router = _make_router()
@@ -215,7 +221,7 @@ class TestCloning:
     def test_cloning_flag_on_picks_elevenlabs(self):
         config = RouterConfig(
             enable_voice_cloning=True,
-            log_file=tempfile.mktemp(suffix=".jsonl"),
+            log_file=_temp_log_file(),
             backend=BackendConfig(),
         )
         router = _make_router()
@@ -226,7 +232,7 @@ class TestCloning:
     def test_cloning_no_capable_backend_raises(self):
         config = RouterConfig(
             enable_voice_cloning=True,
-            log_file=tempfile.mktemp(suffix=".jsonl"),
+            log_file=_temp_log_file(),
             backend=BackendConfig(),
         )
         router = _make_router(

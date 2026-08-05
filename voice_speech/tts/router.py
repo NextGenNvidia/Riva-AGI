@@ -10,16 +10,16 @@ Routing priority (first match wins)
 1. force_backend     — manual override (FR-6)
 2. need_cloning      — select a cloning-capable backend (FR-17, feature-flagged)
 3. network_available == False  → Piper (FR-8)
-4. premium == True   → ElevenLabs → OpenAI → Piper (FR-9)
-5. latency_critical == True    → Cartesia → OpenAI → Piper (FR-10)
-6. default           → OpenAI → Piper
+4. premium == True   → ElevenLabs → OpenAI → Azure → Piper (FR-9)
+5. latency_critical == True    → Cartesia → OpenAI → Azure → Piper (FR-10)
+6. default           → ElevenLabs → OpenAI → Azure → Piper
 
 If the selected backend is unavailable, the router falls back down the
 priority chain rather than raising immediately (FR-7).
 
 Usage
 -----
-    from tts_module import TTSRouter, RouterContext
+    from voice_speech.tts import TTSRouter, RouterContext
 
     router = TTSRouter()
 

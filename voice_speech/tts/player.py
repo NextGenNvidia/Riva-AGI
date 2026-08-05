@@ -4,8 +4,8 @@ player.py — Cross-platform audio playback helper.
 Supports two modes:
 
 1. Full-buffer playback — pass raw bytes (WAV or MP3)
-2. Streaming playback   — pass an Iterator[bytes]; playback begins as soon
-   as the first non-empty chunk arrives.
+2. Streaming playback   — pass an Iterator[bytes]; chunks are collected and then played
+   (for low-latency streaming playback, replace _play_stream with a ring-buffer implementation).
 
 Playback strategy (tried in order):
     a. sounddevice + soundfile  (best cross-platform, WAV/MP3/OGG)

@@ -51,7 +51,6 @@ SAMPLE_TEXT = (
     "The quick brown fox jumps over the lazy dog near the riverbank at sunset."
 )
 OUTPUT_DIR = Path(__file__).parent / "output_audio"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_FILE = OUTPUT_DIR / "output_openai.mp3"
 
 
@@ -62,6 +61,7 @@ def main() -> None:
     parser.add_argument("--model", default="tts-1", help="tts-1 or tts-1-hd")
     args = parser.parse_args()
 
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     print("\n[OpenAI TTS Test]")
     print(f"  Text        : {SAMPLE_TEXT!r}")
     print(f"  Backend     : openai ({args.model}, voice={args.voice})")

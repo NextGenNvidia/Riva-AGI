@@ -49,7 +49,6 @@ SAMPLE_TEXT = (
     "Hello! This is a test of the text-to-speech system."
 )
 OUTPUT_DIR = Path(__file__).parent / "output_audio"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_FILE = OUTPUT_DIR / "output_azure.mp3"
 
 
@@ -60,6 +59,7 @@ def main() -> None:
     parser.add_argument("--region", default="eastus", help="Azure Speech region")
     args = parser.parse_args()
 
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     print("\n[Azure Neural TTS Test]")
     print(f"  Text        : {SAMPLE_TEXT!r}")
     print(f"  Backend     : azure (voice={args.voice}, region={args.region})")

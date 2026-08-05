@@ -81,7 +81,7 @@ AZURE_SPEECH_REGION="eastus"
 
 ## 2. Unit Tests — No Keys or Network Needed
 
-Runs 25 tests with mocked backends. Works immediately after setup.
+Runs 29 tests with mocked backends. Works immediately after setup.
 
 ```bash
 # Option A: From root repository directory (/home/user/Desktop/voice_speech)
@@ -93,7 +93,7 @@ python3 -m pytest tests/unit/test_unit.py -v
 
 **Expected result:**
 ```
-25 passed in 0.08s
+29 passed in 0.15s
 ```
 
 **What is tested:**
@@ -382,9 +382,9 @@ Context flag                  -->  Backend chosen
 force_backend="x"             -->  backend x  (raise if unavailable)
 need_cloning=True             -->  ElevenLabs or Cartesia  (if flag on)
 network_available=False       -->  Piper  (offline, $0 cost)
-premium=True                  -->  ElevenLabs --> OpenAI --> Piper
-latency_critical=True         -->  Cartesia   --> OpenAI --> Piper
-(default)                     -->  OpenAI     --> Piper
+premium=True                  -->  ElevenLabs --> OpenAI --> Azure --> Piper
+latency_critical=True         -->  Cartesia   --> OpenAI --> Azure --> Piper
+(default)                     -->  ElevenLabs --> OpenAI --> Azure --> Piper
 ```
 
 Each step falls back to the next if the preferred backend has no API key or

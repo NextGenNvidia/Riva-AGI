@@ -49,7 +49,6 @@ SAMPLE_TEXT = (
     "Hello! This is a test of the text-to-speech system."
 )
 OUTPUT_DIR = Path(__file__).parent / "output_audio"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_FILE = OUTPUT_DIR / "output_piper.wav"
 
 
@@ -58,6 +57,7 @@ def main() -> None:
     parser.add_argument("--play", action="store_true", help="Play audio after generating")
     args = parser.parse_args()
 
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     print("\n[Piper Local TTS Test]")
     print(f"  Text        : {SAMPLE_TEXT!r}")
     print(f"  Backend     : piper (local, $0 cost)")
