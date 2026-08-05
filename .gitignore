@@ -1,0 +1,31 @@
+# Environment variables and API keys
+.env
+.env.local
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache & build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Piper local binary and speech models
+piper/
+piper_linux_x86_64.tar.gz
+models/
+*.onnx
+*.onnx.json
+
+# Test output audio & per-request metrics logs
+voice_speech/tts/tests/integration/output_audio/
+voice_speech/tts/tests/output_audio/
+output_audio/
+*.wav
+*.mp3
+*.raw
+*.pcm
+*.jsonl

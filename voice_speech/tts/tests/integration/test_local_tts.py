@@ -44,9 +44,9 @@ import sys
 import time
 from pathlib import Path
 
-# Allow running from the project root without installing the package
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
+# Allow running from project root or voice_speech package
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent.parent))
 
 try:
     from voice_speech.tts import TTSRouter, RouterContext

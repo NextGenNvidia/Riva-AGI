@@ -1,27 +1,27 @@
 """
-tests/test_openai_tts.py — Live integration test: OpenAI TTS (API path).
+tests/test_cartesia_tts.py — Live integration test: Cartesia Sonic (latency-critical API path).
 
-Task V2 requirement: test at least one API option and generate sample audio.
+Task V2 requirement: test Cartesia Sonic API option and generate sample audio.
 
 What this script does
 ---------------------
-1. Synthesizes the standard sample sentence via OpenAI TTS (tts-1, voice=alloy).
+1. Synthesizes the standard sample sentence via Cartesia Sonic (sonic-2).
 2. Measures time-to-first-audio (TTFA) and total synthesis time.
-3. Saves the audio to output_openai.mp3.
+3. Saves the raw/WAV audio to output_cartesia.wav.
 4. Prints a result summary.
 
 Requirements
 ------------
-- OPENAI_API_KEY must be set in the environment.
-- pip install openai sounddevice soundfile
+- CARTESIA_API_KEY must be set in the environment.
+- pip install cartesia sounddevice soundfile
 
 Usage
 -----
-    export OPENAI_API_KEY="sk-..."
-    python tests/test_openai_tts.py
+    export CARTESIA_API_KEY="your_api_key_here"
+    python tests/test_cartesia_tts.py
 
     # Optional: play the audio after generating it
-    python tests/test_openai_tts.py --play
+    python tests/test_cartesia_tts.py --play
 """
 
 from __future__ import annotations
@@ -32,8 +32,8 @@ import time
 from pathlib import Path
 
 # Allow running from project root or voice_speech package
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent.parent))
 
 try:
     from voice_speech.tts import TTSRouter, RouterContext
@@ -44,53 +44,46 @@ except ImportError:
     from config import RouterConfig, BackendConfig
     from player import play_audio, save_audio
 
-# ---------------------------------------------------------------------------
-# Sample sentence used in both API and local tests for direct comparison
-# ---------------------------------------------------------------------------
 SAMPLE_TEXT = (
-    "The quick brown fox jumps over the lazy dog near the riverbank at sunset."
+    "Hello! This is a test of the text-to-speech system."
 )
 OUTPUT_DIR = Path(__file__).parent / "output_audio"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_FILE = OUTPUT_DIR / "output_openai.mp3"
+OUTPUT_FILE = OUTPUT_DIR / "output_cartesia.wav"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="OpenAI TTS live test")
+    parser = argparse.ArgumentParser(description="Cartesia Sonic TTS live test")
     parser.add_argument("--play", action="store_true", help="Play audio after generating")
-    parser.add_argument("--voice", default="alloy", help="OpenAI voice name")
-    parser.add_argument("--model", default="tts-1", help="tts-1 or tts-1-hd")
+    parser.add_argument("--model", default="sonic-2", help="Cartesia model ID")
+    parser.add_argument("--voice", default="", help="Cartesia voice ID UUID")
     args = parser.parse_args()
 
-    print("\n[OpenAI TTS Test]")
+    print("\n[Cartesia Sonic TTS Test]")
     print(f"  Text        : {SAMPLE_TEXT!r}")
-    print(f"  Backend     : openai ({args.model}, voice={args.voice})")
+    print(f"  Backend     : cartesia (model={args.model})")
     print(f"  Output      : {OUTPUT_FILE}")
     print()
 
-    # Build a config that applies the CLI args
-    config = RouterConfig(
-        backend=BackendConfig(
-            openai_model=args.model,
-            openai_voice=args.voice,
-        )
-    )
+    backend_kwargs = {"cartesia_model_id": args.model}
+    if args.voice:
+        backend_kwargs["cartesia_voice_id"] = args.voice
+
+    config = RouterConfig(backend=BackendConfig(**backend_kwargs))
     router = TTSRouter(config=config)
 
-    # Check availability before attempting synthesis
     status = router.status()
-    if not status.get("openai"):
-        print("ERROR: OpenAI backend is not available.")
-        print("  → Set OPENAI_API_KEY and run: pip install openai")
+    if not status.get("cartesia"):
+        print("ERROR: Cartesia backend is not available.")
+        print("  → Set CARTESIA_API_KEY and run: pip install cartesia")
         sys.exit(1)
 
-    # Streaming synthesis — record TTFA on first chunk
     t_start = time.monotonic()
     ttfa_ms: float | None = None
     chunks: list[bytes] = []
 
     print("Synthesizing (streaming)...", end="", flush=True)
-    ctx = RouterContext(force_backend="openai", voice_id=args.voice)
+    ctx = RouterContext(force_backend="cartesia")
 
     for chunk in router.stream(SAMPLE_TEXT, ctx):
         if ttfa_ms is None and chunk:
@@ -106,18 +99,15 @@ def main() -> None:
     print(f"  Total time  : {total_ms:.0f} ms")
     print(f"  Audio size  : {len(audio_bytes):,} bytes")
 
-    # Save to file
     save_audio(audio_bytes, OUTPUT_FILE)
     print(f"  Audio saved : {OUTPUT_FILE}")
 
-    # Session log summary
     summary = router.logger.get_summary()
     print()
     print("  Session summary:")
     for k, v in summary.items():
         print(f"    {k}: {v}")
 
-    # Optionally play
     if args.play:
         print()
         print("Playing audio...")

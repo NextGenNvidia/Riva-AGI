@@ -11,12 +11,11 @@ Voice AI Pipeline · Local + API backends · Pluggable router
 voice_speech/
 └── tts/
     ├── __init__.py                # Package exports (TTSRouter, RouterContext, etc.)
-    ├── router.py                  # Multi-backend router & context
+    ├── router.py                  # Multi-backend router & priority context logic
     ├── config.py                  # BackendConfig + RouterConfig (auto-loads .env)
     ├── logger.py                  # JSONL per-request metrics logger
     ├── player.py                  # Cross-platform audio player
     ├── README.md                  # Setup, testing & usage guide
-    ├── TTS_V2_Evaluation.md       # Technical evaluation & comparison report
     ├── .env.example               # Environment variables template
     ├── requirements.txt           # Python dependencies
     │
@@ -29,13 +28,18 @@ voice_speech/
     │   ├── azure_tts.py           # Azure Neural TTS (backup API)
     │   └── piper.py               # Piper (local offline fallback)
     │
+    ├── docs/                      # Module documentation
+    │   └── TTS_V2_Evaluation.md   # Technical evaluation & benchmark report
+    │
     └── tests/                     # Test suite
-        ├── test_unit.py           # Unit test suite — 29 tests (mocked, no keys needed)
-        ├── test_openai_tts.py      # Live OpenAI TTS integration test
-        ├── test_cartesia_tts.py   # Live Cartesia Sonic integration test
-        ├── test_elevenlabs_tts.py # Live ElevenLabs integration test
-        ├── test_azure_tts.py      # Live Azure Neural TTS integration test
-        └── test_local_tts.py      # Live Piper local integration test
+        ├── unit/                  # Unit tests (mocked, 29 tests)
+        │   └── test_unit.py
+        └── integration/           # Live integration tests
+            ├── test_openai_tts.py
+            ├── test_cartesia_tts.py
+            ├── test_elevenlabs_tts.py
+            ├── test_azure_tts.py
+            └── test_local_tts.py
 ```
 
 ---

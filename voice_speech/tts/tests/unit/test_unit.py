@@ -21,8 +21,8 @@ import pytest
 import sys
 
 # Allow running directly from root or voice_speech folder
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent.parent))
 
 try:
     from voice_speech.tts.backends.base import TTSBackend
