@@ -4,9 +4,14 @@ __pycache__/
 *$py.class
 
 # Virtual environments
-venv/
 .venv/
 env/
+.env
+.venv
+venv/
+ENV/
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/
@@ -15,3 +20,10 @@ env/
 # OS
 Thumbs.db
 .DS_Store
+
+# VS Code
+.vscode/
+
+# IDEs
+.idea/
+*.swp
