@@ -30,25 +30,25 @@ def _load_env_file() -> None:
     except ImportError:
         pass
 
-    candidates = [
-        Path.cwd() / ".env",
-        Path(__file__).resolve().parent / ".env",
-        Path(__file__).resolve().parent.parent / ".env",
-        Path(__file__).resolve().parent.parent.parent / ".env",
-    ]
-    for env_path in candidates:
-        if env_path.exists():
-            try:
-                with open(env_path, encoding="utf-8") as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and not line.startswith("#") and "=" in line:
-                            k, v = line.split("=", 1)
-                            k, v = k.strip(), v.strip().strip("'\"")
-                            if k and k not in os.environ:
-                                os.environ[k] = v
-            except Exception:
-                pass
+    # Search upwards from current directory and file location for .env file
+    starts = [Path.cwd(), Path(__file__).resolve().parent]
+    for start in starts:
+        curr = start
+        while curr != curr.parent:
+            env_path = curr / ".env"
+            if env_path.exists():
+                try:
+                    with open(env_path, encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith("#") and "=" in line:
+                                k, v = line.split("=", 1)
+                                k, v = k.strip(), v.strip().strip("'\"")
+                                os.environ.setdefault(k, v)
+                    return
+                except Exception:
+                    pass
+            curr = curr.parent
 
 _load_env_file()
 
