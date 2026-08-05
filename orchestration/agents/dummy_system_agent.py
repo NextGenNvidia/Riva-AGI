@@ -50,7 +50,7 @@ def dummy_orchestrator_router(task_request: InputData) -> AgentResponse:
     Simulates Task O1 (Root Orchestrator).
     Reads the registry, decides which agent fits the task, and routes to it.
     """
-    text_req = task_request.text_content
+    text_req = task_request.text_content or ""
     logger.info(f"[Router] Received task: '{text_req}'")
     
     # 1. Read capabilities from registry

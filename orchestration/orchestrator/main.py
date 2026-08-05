@@ -1,6 +1,5 @@
 import logging
-import json
-from typing import TypedDict, Literal
+from typing import TypedDict
 
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
@@ -36,7 +35,7 @@ class AgentState(TypedDict):
 
 def route_task(state: AgentState):
     try:
-        task_text = state["task_payload"].text_content
+        task_text = state["task_payload"].text_content or ""
         task_id = state["task_id"]
         
         # Log state: Started
