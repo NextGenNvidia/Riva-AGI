@@ -397,11 +397,11 @@ SDK installed.
 Make sure your API keys are added in `.env` (or environment variables), then run any of the test scripts below:
 
 ```bash
-# ==============================================================================
-# Activate virtual environment first (Recommended)
-# ==============================================================================
-source "../../.venv/bin/activate"   # From tts directory
-# OR: source ".venv/bin/activate"   # From repo root
+# Step 1: Navigate to the TTS module directory
+cd /home/alex/Desktop/voice_speech/tts/voice_speech/tts
+
+# Step 2: Activate virtual environment
+source "../../.venv/bin/activate"
 
 # ==============================================================================
 # 1. Run Unit Test Suite (29 Mocked Tests)
@@ -436,7 +436,7 @@ python tests/integration/test_azure_tts.py --play
 # ==============================================================================
 # 7. Test Piper Local (Offline Fallback — $0 Cost)
 # ==============================================================================
-PIPER_BINARY=./piper/piper PIPER_MODEL=./models/en_US-lessac-medium.onnx \
+PIPER_BINARY=../../piper/piper PIPER_MODEL=../../models/en_US-lessac-medium.onnx \
   python tests/integration/test_local_tts.py --play
 ```
 
