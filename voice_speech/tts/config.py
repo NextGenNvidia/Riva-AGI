@@ -26,7 +26,7 @@ from pathlib import Path
 def _load_env_file() -> None:
     try:
         from dotenv import load_dotenv  # type: ignore
-        load_dotenv(override=True)
+        load_dotenv(override=False)
     except ImportError:
         pass
 
