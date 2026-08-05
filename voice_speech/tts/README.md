@@ -398,60 +398,54 @@ Make sure your API keys are added in `.env` (or environment variables), then run
 
 ```bash
 # ==============================================================================
+# Activate virtual environment first (Recommended)
+# ==============================================================================
+source "../../.venv/bin/activate"   # From tts directory
+# OR: source ".venv/bin/activate"   # From repo root
+
+# ==============================================================================
 # 1. Run Unit Test Suite (29 Mocked Tests)
 # ==============================================================================
 # From repo root:
 .venv/bin/python -m pytest voice_speech/tts/tests/unit/test_unit.py -v
+
 # From tts directory:
-python3 -m pytest tests/unit/test_unit.py -v
+../../.venv/bin/python -m pytest tests/unit/test_unit.py -v
 
 # ==============================================================================
 # 2. Check Backend Availability Status
 # ==============================================================================
-# From repo root:
-PYTHONPATH=. python3 -c "from voice_speech.tts import TTSRouter; print(TTSRouter().status())"
-
-# From tts directory:
-python3 -c "from router import TTSRouter; print(TTSRouter().status())"
+../../.venv/bin/python -c "from router import TTSRouter; print(TTSRouter().status())"
 
 # ==============================================================================
 # 3. Test ElevenLabs (Default API Engine — Highest Voice Quality)
 # ==============================================================================
-python3 tests/integration/test_elevenlabs_tts.py
-python3 tests/integration/test_elevenlabs_tts.py --play
+../../.venv/bin/python tests/integration/test_elevenlabs_tts.py
+../../.venv/bin/python tests/integration/test_elevenlabs_tts.py --play
 
 # ==============================================================================
 # 4. Test Cartesia Sonic (Latency-Critical Path — ~65ms TTFA)
 # ==============================================================================
-python3 tests/integration/test_cartesia_tts.py
-python3 tests/integration/test_cartesia_tts.py --play
+../../.venv/bin/python tests/integration/test_cartesia_tts.py
+../../.venv/bin/python tests/integration/test_cartesia_tts.py --play
 
 # ==============================================================================
 # 5. Test OpenAI TTS (Secondary API Engine)
 # ==============================================================================
-python3 tests/integration/test_openai_tts.py
-python3 tests/integration/test_openai_tts.py --play
-python3 tests/integration/test_openai_tts.py --play --model tts-1-hd --voice nova
+../../.venv/bin/python tests/integration/test_openai_tts.py
+../../.venv/bin/python tests/integration/test_openai_tts.py --play
 
 # ==============================================================================
 # 6. Test Azure Neural TTS (OpenAI Backup Path)
 # ==============================================================================
-python3 tests/integration/test_azure_tts.py
-python3 tests/integration/test_azure_tts.py --play
+../../.venv/bin/python tests/integration/test_azure_tts.py
+../../.venv/bin/python tests/integration/test_azure_tts.py --play
 
 # ==============================================================================
 # 7. Test Piper Local (Offline Fallback — $0 Cost)
 # ==============================================================================
 PIPER_BINARY=./piper/piper PIPER_MODEL=./models/en_US-lessac-medium.onnx \
-  python3 tests/integration/test_local_tts.py
-
-PIPER_BINARY=./piper/piper PIPER_MODEL=./models/en_US-lessac-medium.onnx \
-  python3 tests/integration/test_local_tts.py --play
-
-# ==============================================================================
-# 8. Inspect Session Request Log
-# ==============================================================================
-cat tts_requests.jsonl | python3 -m json.tool
+  ../../.venv/bin/python tests/integration/test_local_tts.py --play
 ```
 
 ---
