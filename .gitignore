@@ -29,3 +29,23 @@ output_audio/
 *.raw
 *.pcm
 *.jsonl
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# VS Code
+.vscode/
+
+# IDEs
+.idea/
+*.swp
