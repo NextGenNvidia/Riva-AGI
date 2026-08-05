@@ -1,0 +1,35 @@
+{
+    "coding": {
+        "agent": "coder",
+        "keywords": [
+            "code",
+            "python",
+            "function",
+            "class",
+            "program",
+            "algorithm",
+            "debug",
+            "implement",
+            "sort",
+            "sorting",
+            "compile",
+            "bug",
+            "script"
+        ]
+    },
+    "research": {
+        "agent": "researcher",
+        "keywords": [
+            "research",
+            "explain",
+            "investigate",
+            "compare",
+            "what is",
+            "why is",
+            "how does",
+            "find information",
+            "information",
+            "study"
+        ]
+    }
+}
