@@ -1,0 +1,25 @@
+# TTS Module — Python Dependencies
+#
+# All API packages are optional — the module degrades gracefully if any
+# are missing. is_available() returns False instead of crashing.
+#
+# Core (needed for logger, player, and config)
+sounddevice>=0.4.6        # cross-platform audio playback
+soundfile>=0.12.1         # WAV/MP3 decode for sounddevice
+numpy>=1.24.0             # required by sounddevice
+python-dotenv>=1.0.0      # auto-load .env environment file
+
+# API backends (install only what you need)
+openai>=1.30.0            # OpenAI TTS (tts-1, tts-1-hd)
+cartesia>=1.0.0           # Cartesia Sonic
+elevenlabs>=1.0.0         # ElevenLabs Flash/Turbo
+azure-cognitiveservices-speech>=1.30.0  # Azure Neural TTS
+
+# Local backend
+# piper-tts is only available on some platforms via pip;
+# for others, download the prebuilt binary from:
+# https://github.com/rhasspy/piper/releases
+piper-tts>=1.2.0; sys_platform != "win32"
+
+# Dev / testing
+pytest>=8.0.0

@@ -1,0 +1,77 @@
+# =========================
+# Environment & Secrets
+# =========================
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.crt
+*.p12
+!.env.example
+# =========================
+# Virtual Environments
+# =========================
+.venv/
+venv/
+env/
+ENV/
+
+# =========================
+# Python Cache
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# =========================
+# Build / Packaging
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# =========================
+# Binary Downloads & Models
+# =========================
+piper/
+models/
+*.onnx
+*.onnx.json
+*.tar.gz
+*.bin
+*.ckpt
+*.pt
+*.pth
+
+# =========================
+# Audio Outputs & Test Artifacts
+# =========================
+tests/output_audio/
+*.wav
+*.mp3
+*.raw
+
+# Logs
+*.log
+*.jsonl
+tts_requests.jsonl
+
+# =========================
+# IDE & OS
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
