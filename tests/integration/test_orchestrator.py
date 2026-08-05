@@ -8,7 +8,7 @@ def test_coding_task_orchestration():
 
     assert result["agent"] == "coder"
     assert result["intent"] == "coding"
-    assert "Coder Agent received" in result["response"]
+    assert "Coder Agent processed text" in result["response_payload"].content
 
 
 def test_unknown_task_uses_fallback():
@@ -17,4 +17,4 @@ def test_unknown_task_uses_fallback():
     assert result["agent"] == "fallback"
     assert result["intent"] == "unknown"
     assert result["confidence"] == 0.0
-    assert "couldn't confidently determine" in result["response"]
+    assert "couldn't confidently determine" in result["response_payload"].content
