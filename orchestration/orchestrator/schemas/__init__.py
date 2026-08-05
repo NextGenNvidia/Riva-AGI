@@ -4,7 +4,7 @@ Schemas Package — orchestrator/schemas/__init__.py
 Central re-export hub for all Pydantic schema models.
 
 Any team can do:
-    from orchestration.orchestrator.schemas import InputData, ToolCall, AgentResponse
+    from orchestrator.schemas import InputData, ToolCall, AgentResponse
 
 While individual teams only edit their own file:
     - Voice/Vision team  --> input.py
@@ -16,9 +16,9 @@ This eliminates merge conflicts across all 8 feature teams.
 
 # try/except handles TWO execution modes:
 #   1. Relative imports (from .input) work when imported as a PACKAGE
-#      e.g., from orchestration.orchestrator.schemas import InputData
+#      e.g., from orchestrator.schemas import InputData
 #   2. Direct imports (from input) work when run as a SCRIPT
-#      e.g., python orchestration/orchestrator/schemas/__init__.py
+#      e.g., python orchestrator/schemas/__init__.py
 try:
     # --- Package mode (normal usage by other modules) ---
     from .input import InputType, MediaSourceType, MediaPayload, InputData
@@ -31,7 +31,7 @@ except ImportError:
     from response import ResponseStatus, AgentResponse
 
 
-# __all__ controls what gets exported when someone does `from orchestration.orchestrator.schemas import *`
+# __all__ controls what gets exported when someone does `from orchestrator.schemas import *`
 __all__ = [
     # Input
     "InputType",
