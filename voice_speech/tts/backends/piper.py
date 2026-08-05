@@ -80,18 +80,52 @@ class PiperBackend(TTSBackend):
     def supports_cloning(self) -> bool:
         return False
 
-    def is_available(self) -> bool:
+    def _resolve_binary(self) -> str | None:
         binary = self._cfg.piper_binary
-        if not shutil.which(binary) and not Path(binary).is_file():
+        if shutil.which(binary):
+            return binary
+        candidates = [
+            Path(binary),
+            Path.cwd() / binary,
+            Path.cwd().parent / binary,
+            Path.cwd().parent.parent / binary,
+            Path(__file__).resolve().parent.parent.parent / "piper" / "piper",
+            Path(__file__).resolve().parent.parent.parent.parent / "piper" / "piper",
+        ]
+        for c in candidates:
+            if c.is_file():
+                return str(c.resolve())
+        return None
+
+    def _resolve_model(self) -> str | None:
+        model = self._cfg.piper_model
+        if not model:
+            return None
+        candidates = [
+            Path(model),
+            Path.cwd() / model,
+            Path.cwd().parent / model,
+            Path.cwd().parent.parent / model,
+            Path(__file__).resolve().parent.parent.parent / "models" / "en_US-lessac-medium.onnx",
+            Path(__file__).resolve().parent.parent.parent.parent / "models" / "en_US-lessac-medium.onnx",
+        ]
+        for c in candidates:
+            if c.is_file():
+                return str(c.resolve())
+        return None
+
+    def is_available(self) -> bool:
+        bin_path = self._resolve_binary()
+        if not bin_path:
             _log.debug(
-                "Piper backend unavailable: binary %r not found in PATH", binary
+                "Piper backend unavailable: binary %r not found", self._cfg.piper_binary
             )
             return False
 
-        model = self._cfg.piper_model
-        if model and not Path(model).exists():
+        model_path = self._resolve_model()
+        if not model_path:
             _log.debug(
-                "Piper backend unavailable: model file %r not found", model
+                "Piper backend unavailable: model file %r not found", self._cfg.piper_model
             )
             return False
 
@@ -165,16 +199,17 @@ class PiperBackend(TTSBackend):
             proper WAV with headers (preferred). If None, falls back to
             --output-raw (headerless PCM to stdout — avoid for playback).
         """
-        cmd = [self._cfg.piper_binary]
+        bin_path = self._resolve_binary() or self._cfg.piper_binary
+        cmd = [bin_path]
 
-        model = self._cfg.piper_model
-        if model:
-            cmd += ["--model", model]
+        model_path = self._resolve_model() or self._cfg.piper_model
+        if model_path:
+            cmd += ["--model", model_path]
 
         config = self._cfg.piper_model_config
         # Auto-derive config path if not explicitly set but model is
-        if not config and model:
-            config = model + ".json"
+        if not config and model_path:
+            config = model_path + ".json"
         if config and Path(config).exists():
             cmd += ["--config", config]
 
