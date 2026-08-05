@@ -1,5 +1,5 @@
 """
-tests/test_openai_tts.py — Live integration test: OpenAI TTS (API path).
+tests/integration/test_openai_tts.py — Live integration test: OpenAI TTS (API path).
 
 Task V2 requirement: test at least one API option and generate sample audio.
 
@@ -12,16 +12,16 @@ What this script does
 
 Requirements
 ------------
-- OPENAI_API_KEY must be set in the environment.
+- OPENAI_API_KEY must be set in the environment (or .env).
 - pip install openai sounddevice soundfile
 
 Usage
 -----
     export OPENAI_API_KEY="sk-..."
-    python tests/test_openai_tts.py
+    python tests/integration/test_openai_tts.py
 
     # Optional: play the audio after generating it
-    python tests/test_openai_tts.py --play
+    python tests/integration/test_openai_tts.py --play
 """
 
 from __future__ import annotations

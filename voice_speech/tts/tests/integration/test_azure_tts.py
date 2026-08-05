@@ -1,5 +1,5 @@
 """
-tests/test_azure_tts.py — Live integration test: Azure Neural TTS (OpenAI backup path).
+tests/integration/test_azure_tts.py — Live integration test: Azure Neural TTS (OpenAI backup path).
 
 Task V2 requirement: test Azure Neural TTS API option and generate sample audio.
 
@@ -12,17 +12,17 @@ What this script does
 
 Requirements
 ------------
-- AZURE_SPEECH_KEY and AZURE_SPEECH_REGION must be set in the environment.
+- AZURE_SPEECH_KEY and AZURE_SPEECH_REGION must be set in the environment (or .env).
 - pip install azure-cognitiveservices-speech sounddevice soundfile
 
 Usage
 -----
     export AZURE_SPEECH_KEY="your_azure_key"
     export AZURE_SPEECH_REGION="eastus"
-    python tests/test_azure_tts.py
+    python tests/integration/test_azure_tts.py
 
     # Optional: play the audio after generating it
-    python tests/test_azure_tts.py --play
+    python tests/integration/test_azure_tts.py --play
 """
 
 from __future__ import annotations

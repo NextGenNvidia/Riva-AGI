@@ -1,5 +1,5 @@
 """
-tests/test_cartesia_tts.py — Live integration test: Cartesia Sonic (latency-critical API path).
+tests/integration/test_cartesia_tts.py — Live integration test: Cartesia Sonic (latency-critical API path).
 
 Task V2 requirement: test Cartesia Sonic API option and generate sample audio.
 
@@ -12,16 +12,16 @@ What this script does
 
 Requirements
 ------------
-- CARTESIA_API_KEY must be set in the environment.
+- CARTESIA_API_KEY must be set in the environment (or .env).
 - pip install cartesia sounddevice soundfile
 
 Usage
 -----
     export CARTESIA_API_KEY="your_api_key_here"
-    python tests/test_cartesia_tts.py
+    python tests/integration/test_cartesia_tts.py
 
     # Optional: play the audio after generating it
-    python tests/test_cartesia_tts.py --play
+    python tests/integration/test_cartesia_tts.py --play
 """
 
 from __future__ import annotations

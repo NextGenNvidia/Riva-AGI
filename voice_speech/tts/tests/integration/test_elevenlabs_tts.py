@@ -1,5 +1,5 @@
 """
-tests/test_elevenlabs_tts.py — Live integration test: ElevenLabs (premium quality & cloning path).
+tests/integration/test_elevenlabs_tts.py — Live integration test: ElevenLabs (premium quality & cloning path).
 
 Task V2 requirement: test ElevenLabs API option and generate sample audio.
 
@@ -12,16 +12,16 @@ What this script does
 
 Requirements
 ------------
-- ELEVENLABS_API_KEY must be set in the environment.
+- ELEVENLABS_API_KEY must be set in the environment (or .env).
 - pip install elevenlabs sounddevice soundfile
 
 Usage
 -----
     export ELEVENLABS_API_KEY="your_api_key_here"
-    python tests/test_elevenlabs_tts.py
+    python tests/integration/test_elevenlabs_tts.py
 
     # Optional: play the audio after generating it
-    python tests/test_elevenlabs_tts.py --play
+    python tests/integration/test_elevenlabs_tts.py --play
 """
 
 from __future__ import annotations

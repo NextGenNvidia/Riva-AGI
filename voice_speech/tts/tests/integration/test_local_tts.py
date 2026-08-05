@@ -1,5 +1,5 @@
 """
-tests/test_local_tts.py — Live integration test: Piper (local path).
+tests/integration/test_local_tts.py — Live integration test: Piper (local path).
 
 Task V2 requirement: test at least one local option and generate sample audio.
 
@@ -12,29 +12,16 @@ What this script does
 
 Requirements
 ------------
-- Piper binary installed (or PIPER_BINARY set to its path).
-- Piper voice model downloaded (or PIPER_MODEL set to its path).
+- Piper binary installed (automatically detected, or set via PIPER_BINARY).
+- Piper voice model downloaded (automatically detected, or set via PIPER_MODEL).
 - No API key or network access needed.
-
-Quick setup
------------
-    # Linux x86_64
-    wget https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz
-    tar -xzf piper_linux_x86_64.tar.gz
-    export PIPER_BINARY=$(pwd)/piper/piper
-
-    # Download voice model
-    mkdir -p models
-    wget -P models https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx
-    wget -P models https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json
-    export PIPER_MODEL=$(pwd)/models/en_US-lessac-medium.onnx
 
 Usage
 -----
-    python tests/test_local_tts.py
+    python tests/integration/test_local_tts.py
 
     # Optional: play the audio after generating it
-    python tests/test_local_tts.py --play
+    python tests/integration/test_local_tts.py --play
 """
 
 from __future__ import annotations
