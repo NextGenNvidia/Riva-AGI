@@ -218,8 +218,11 @@ if __name__ == "__main__":
     print("  Riva-AGI: FULL INTEGRATION RUN (O1, O2, O3, O4)")
     print("="*60)
     
-    # Let's use a dynamic agent to prove it works!
-    task = "I need to write code for a new feature."
+    # Allow dynamic testing from terminal or fallback to a dummy task
+    task = input("\nEnter your task (or press Enter for a dummy test): ").strip()
+    if not task:
+        task = "I need to write code for a new feature."
+    
     print(f"\nUser Request: {task}\n")
     
     result = run_orchestrator(task)
