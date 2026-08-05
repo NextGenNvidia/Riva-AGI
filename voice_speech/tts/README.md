@@ -32,15 +32,18 @@ voice_speech/
     │   └── TTS_V2_Evaluation.md   # Technical evaluation & benchmark report
     │
     └── tests/                     # Test suite
-        ├── unit/                  # Unit tests (mocked, 29 tests)
+        ├── unit/                  # Unit tests (mocked, 29 tests - free to run)
         │   └── test_unit.py
-        └── integration/           # Live integration tests
+        └── integration/           # Live integration tests (requires API keys, may incur provider costs)
             ├── test_openai_tts.py
             ├── test_cartesia_tts.py
             ├── test_elevenlabs_tts.py
             ├── test_azure_tts.py
             └── test_local_tts.py
 ```
+
+> ⚠️ **Note on Integration Tests (`tests/integration/`):**  
+> Integration tests connect to live cloud API endpoints and require valid API credentials configured in `.env`. Running live integration tests may incur usage costs from provider accounts (ElevenLabs, Cartesia, OpenAI, Azure). Unit tests (`tests/unit/`) use mocked backends, require no network or API keys, and are 100% free to run anytime.
 
 ---
 
