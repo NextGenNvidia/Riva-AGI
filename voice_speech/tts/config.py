@@ -26,7 +26,7 @@ from pathlib import Path
 def _load_env_file() -> None:
     try:
         from dotenv import load_dotenv  # type: ignore
-        load_dotenv()
+        load_dotenv(override=True)
     except ImportError:
         pass
 
@@ -44,7 +44,9 @@ def _load_env_file() -> None:
                             if line and not line.startswith("#") and "=" in line:
                                 k, v = line.split("=", 1)
                                 k, v = k.strip(), v.strip().strip("'\"")
-                                os.environ.setdefault(k, v)
+                                # Overwrite if not set or if set to empty string
+                                if v and (k not in os.environ or not os.environ[k].strip()):
+                                    os.environ[k] = v
                     return
                 except Exception:
                     pass
