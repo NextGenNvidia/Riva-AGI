@@ -408,7 +408,11 @@ python3 -m pytest tests/unit/test_unit.py -v
 # ==============================================================================
 # 2. Check Backend Availability Status
 # ==============================================================================
-python3 -c "from voice_speech.tts import TTSRouter; print(TTSRouter().status())"
+# From repo root:
+PYTHONPATH=. python3 -c "from voice_speech.tts import TTSRouter; print(TTSRouter().status())"
+
+# From tts directory:
+python3 -c "from router import TTSRouter; print(TTSRouter().status())"
 
 # ==============================================================================
 # 3. Test ElevenLabs (Default API Engine — Highest Voice Quality)

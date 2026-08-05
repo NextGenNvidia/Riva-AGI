@@ -23,24 +23,32 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Auto-load .env file if available (using python-dotenv or simple parser fallback)
 def _load_env_file() -> None:
     try:
         from dotenv import load_dotenv  # type: ignore
         load_dotenv()
     except ImportError:
-        env_path = Path(__file__).resolve().parent.parent / ".env"
-        if env_path.exists():
-            with open(env_path, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith("#") and "=" in line:
-                        k, v = line.split("=", 1)
-                        k, v = k.strip(), v.strip().strip("'\"")
-                        if k and k not in os.environ:
-                            os.environ[k] = v
+        pass
 
-_load_env_file()
+    candidates = [
+        Path.cwd() / ".env",
+        Path(__file__).resolve().parent / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+        Path(__file__).resolve().parent.parent.parent / ".env",
+    ]
+    for env_path in candidates:
+        if env_path.exists():
+            try:
+                with open(env_path, encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            k, v = line.split("=", 1)
+                            k, v = k.strip(), v.strip().strip("'\"")
+                            if k and k not in os.environ:
+                                os.environ[k] = v
+            except Exception:
+                pass
 
 
 # ---------------------------------------------------------------------------
