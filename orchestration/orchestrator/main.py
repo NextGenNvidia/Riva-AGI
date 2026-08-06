@@ -1,47 +1,72 @@
 import logging
-from typing import TypedDict, Literal
+from typing import TypedDict
 
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
 
-from orchestration.orchestrator.agent_registry import AGENT_REGISTRY
+from orchestration.orchestrator.registry import registry
+from orchestration.orchestrator.state_manager import TaskStateManager, TaskStatus
 from orchestration.orchestrator.router import classify_intent
+from orchestration import InputData, AgentResponse, ResponseStatus, InputType
 
+# Ensure all agents are loaded and registered
+import orchestration.agents.coder
+import orchestration.agents.researcher
+import orchestration.agents.dummy_system_agent
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-
-AgentName = Literal["coder", "researcher", "fallback"]
-IntentName = Literal["coding", "research", "unknown"]
-
+# Single global State Manager
+task_manager = TaskStateManager()
 
 class AgentState(TypedDict):
-    task: str
-    agent: AgentName
-    response: str
+    # Now we store the schema-validated objects!
+    task_payload: InputData
+    agent: str
+    response_payload: AgentResponse | None
     task_id: str
     session_id: str
     source: str
-    intent: IntentName
+    intent: str
     confidence: float
 
 
 def route_task(state: AgentState):
     try:
-        classification = classify_intent(state["task"])
+        task_text = state["task_payload"].text_content or ""
+        task_id = state["task_id"]
+        
+        # Log state: Started
+        task_manager.start_task(
+            task_id=task_id, 
+            initial_data={"task": task_text}
+        )
+        
+        # Determine Routing
+        classification = classify_intent(task_text)
+        chosen_agent = classification["agent"]
+        
+        # Check if the chosen agent actually exists in our dynamic registry
+        all_agents = registry.get_all_capabilities()
+        if chosen_agent not in all_agents:
+            chosen_agent = "fallback"
 
-        logger.info(
-            "Orchestrator routed task to: %s",
-            classification["agent"],
+        logger.info(f"Orchestrator routed task to: {chosen_agent}")
+        
+        # Update state: In Progress
+        task_manager.update_task_state(
+            task_id=task_id, 
+            new_owner="orchestrator_router", 
+            status=TaskStatus.IN_PROGRESS
         )
 
         return {
             "intent": classification["intent"],
-            "agent": classification["agent"],
+            "agent": chosen_agent,
             "confidence": classification["confidence"],
-            "task_id": state["task_id"],
+            "task_id": task_id,
             "session_id": state["session_id"],
             "source": state["source"],
         }
@@ -51,38 +76,62 @@ def route_task(state: AgentState):
         raise
 
 
-def coder_node(state: AgentState):
-    try:
-        agent = AGENT_REGISTRY["coder"]
-        response = agent(state["task"])
-        return {"response": response}
-
-    except Exception:
-        logger.exception("Coder agent failed")
-        raise
-
-
-def researcher_node(state: AgentState):
-    try:
-        agent = AGENT_REGISTRY["researcher"]
-        response = agent(state["task"])
-        return {"response": response}
-
-    except Exception:
-        logger.exception("Researcher agent failed")
-        raise
+def create_agent_node(agent_name: str):
+    """Dynamically generates a LangGraph node function for a given registered agent."""
+    def node_func(state: AgentState):
+        try:
+            task_id = state["task_id"]
+            
+            # Update state manager tracker
+            task_manager.update_task_state(
+                task_id=task_id, 
+                new_owner=agent_name, 
+                status=TaskStatus.IN_PROGRESS
+            )
+            
+            # Fetch handler from registry and execute
+            handler = registry.get_agent(agent_name)
+            if not handler:
+                raise ValueError(f"Agent {agent_name} not found in registry.")
+                
+            response = handler(state["task_payload"])
+            
+            # Update state manager tracker on completion
+            task_manager.update_task_state(
+                task_id=task_id, 
+                new_owner=agent_name, 
+                status=TaskStatus.COMPLETED
+            )
+            
+            return {"response_payload": response}
+            
+        except Exception:
+            logger.exception(f"{agent_name.capitalize()} agent failed")
+            # Update state manager tracker on failure
+            task_manager.update_task_state(
+                task_id=state["task_id"], 
+                new_owner=agent_name, 
+                status=TaskStatus.FAILED
+            )
+            raise
+    return node_func
 
 
 def fallback_node(state: AgentState):
-    return {
-        "response": (
-            "I couldn't confidently determine which agent should "
-            "handle this task."
-        )
-    }
+    task_id = state["task_id"]
+    task_manager.update_task_state(task_id, new_owner="fallback", status=TaskStatus.FAILED)
+    
+    fallback_response = AgentResponse(
+        agent_id="fallback",
+        status=ResponseStatus.FAILED,
+        content="I couldn't confidently determine which agent should handle this task.",
+        tool_calls=[],
+        execution_time_ms=0.0
+    )
+    return {"response_payload": fallback_response}
 
 
-def route_decision(state: AgentState) -> AgentName:
+def route_decision(state: AgentState) -> str:
     return state["agent"]
 
 
@@ -90,44 +139,56 @@ def create_orchestrator():
     graph = StateGraph(AgentState)
 
     graph.add_node("route", route_task)
-    graph.add_node("coder", coder_node)
-    graph.add_node("researcher", researcher_node)
+    
+    # 1. Dynamically add all agents from Registry
+    registered_agents = registry.get_all_capabilities().keys()
+    for agent_name in registered_agents:
+        graph.add_node(agent_name, create_agent_node(agent_name))
+        
     graph.add_node("fallback", fallback_node)
-
     graph.add_edge(START, "route")
 
+    # 2. Setup Conditional Edges
+    condition_map = {agent: agent for agent in registered_agents}
+    condition_map["fallback"] = "fallback"
+    
     graph.add_conditional_edges(
         "route",
         route_decision,
-        {
-            "coder": "coder",
-            "researcher": "researcher",
-            "fallback": "fallback",
-        },
+        condition_map,
     )
 
-    graph.add_edge("coder", END)
-    graph.add_edge("researcher", END)
+    # 3. All agents route to END
+    for agent_name in registered_agents:
+        graph.add_edge(agent_name, END)
+        
     graph.add_edge("fallback", END)
 
     return graph.compile()
 
 
 def run_orchestrator(
-    task: str,
-    task_id: str = "task-001",
+    task_text: str,
+    task_id: str = "task-final-int",
     session_id: str = "session-001",
     source: str = "cli",
 ) -> dict:
 
     try:
         app = create_orchestrator()
+        
+        # Package the raw string into our strict Schema
+        input_data = InputData(
+            input_type=InputType.TEXT,
+            text_content=task_text,
+            metadata={"source": source}
+        )
 
         result = app.invoke(
             {
-                "task": task,
+                "task_payload": input_data,
                 "agent": "fallback",
-                "response": "",
+                "response_payload": None,
                 "task_id": task_id,
                 "session_id": session_id,
                 "source": source,
@@ -151,10 +212,27 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     )
-
-    task = input("Enter your task: ")
-
+    
+    print("="*60)
+    print("  Riva-AGI: FULL INTEGRATION RUN (O1, O2, O3, O4)")
+    print("="*60)
+    
+    # Allow dynamic testing from terminal or fallback to a dummy task
+    task = input("\nEnter your task (or press Enter for a dummy test): ").strip()
+    if not task:
+        task = "I need to write code for a new feature."
+    
+    print(f"\nUser Request: {task}\n")
+    
     result = run_orchestrator(task)
 
-    print("\nFinal response:")
-    print(result["response"])
+    print("\n" + "="*60)
+    print("  FINAL AGENT RESPONSE (O2 SCHEMA)")
+    print("="*60)
+    print(result["response_payload"].model_dump_json(indent=2))
+    
+    print("\n" + "="*60)
+    print("  FINAL TASK HISTORY (O3 TRACKER)")
+    print("="*60)
+    final_history = task_manager.get_task_status("task-final-int")
+    print(final_history.model_dump_json(indent=2))
