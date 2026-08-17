@@ -17,3 +17,4 @@
 - **Kishan Singh** - Voice/Speech (STT-TTS)
 - **Rishu Soni** - Multi-Agents and Orchestration
 - **Sandhya Singh** - RAG / Knowledge Base
+- **Akshit Kumar** - Web Development
