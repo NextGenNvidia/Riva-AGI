@@ -18,3 +18,4 @@
 - **Rishu Soni** - Multi-Agents and Orchestration
 - **Sandhya Singh** - RAG / Knowledge Base
 - **Vaishali Singh** - Integration/APIs
+- **Akshit Kumar** - Web Development
