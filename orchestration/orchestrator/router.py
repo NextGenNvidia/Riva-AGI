@@ -1,35 +1,23 @@
 import json
+import logging
 from pathlib import Path
 from typing import Literal, TypedDict
+import re
 
+from orchestration.llm.client import llm_client
 
 AgentName = Literal["coder", "researcher", "fallback"]
 IntentName = Literal["coding", "research", "unknown"]
-
 
 class IntentClassification(TypedDict):
     intent: IntentName
     agent: AgentName
     confidence: float
 
-
-CONFIG_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "config"
-    / "routing.json"
-)
-
-
-def load_routing_config() -> dict:
-    """Load routing rules from the project configuration."""
-
-    with CONFIG_PATH.open("r", encoding="utf-8") as file:
-        return json.load(file)
-
+logger = logging.getLogger(__name__)
 
 def classify_intent(task: str) -> IntentClassification:
-    """Classify a task using configurable routing rules."""
-
+    """Classify a task using a Smart LLM-based semantic router."""
     task = task.strip()
 
     # Input guardrail
@@ -40,38 +28,51 @@ def classify_intent(task: str) -> IntentClassification:
             "confidence": 0.0,
         }
 
-    task_lower = task.lower()
-    config = load_routing_config()
-
-    coding_keywords = config["coding"]["keywords"]
-    research_keywords = config["research"]["keywords"]
-
-    coding_matches = sum(
-        keyword.lower() in task_lower
-        for keyword in coding_keywords
+    system_prompt = (
+        "You are the Riva-AGI Orchestrator Router. Your job is to classify the user's task.\n"
+        "Categories:\n"
+        "1. 'coding' -> The user wants to write code, solve algorithmic problems (e.g., LeetCode/array questions), debug, or build software.\n"
+        "2. 'research' -> The user wants to find information, search the web, learn about a topic, or summarize data.\n"
+        "3. 'system' -> The user wants to know the current date, time, system status, or do a mathematical calculation.\n"
+        "4. 'unknown' -> The task doesn't fit any category or is completely ambiguous.\n\n"
+        "Output ONLY a raw JSON object (no markdown, no quotes) with this exact schema:\n"
+        '{"intent": "coding", "confidence": 0.95}'
     )
 
-    research_matches = sum(
-        keyword.lower() in task_lower
-        for keyword in research_keywords
-    )
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": task}
+    ]
 
-    if coding_matches > research_matches and coding_matches > 0:
-        return {
-            "intent": "coding",
-            "agent": "coder",
-            "confidence": min(0.6 + (coding_matches * 0.1), 0.95),
-        }
+    try:
+        # Use LLM to generate classification
+        response = llm_client.generate(messages=messages)
+        
+        # Extract JSON block in case LLM adds markdown
+        json_match = re.search(r"\{.*?\}", response, re.DOTALL)
+        if json_match:
+            response = json_match.group(0)
+            
+        data = json.loads(response)
+        intent = data.get("intent", "unknown").lower()
+        confidence = float(data.get("confidence", 0.0))
 
-    if research_matches > coding_matches and research_matches > 0:
-        return {
-            "intent": "research",
-            "agent": "researcher",
-            "confidence": min(0.6 + (research_matches * 0.1), 0.95),
-        }
-
-    return {
-        "intent": "unknown",
-        "agent": "fallback",
-        "confidence": 0.0,
-    }
+        if intent == "coding":
+            return {"intent": "coding", "agent": "coder", "confidence": confidence}
+        elif intent == "research":
+            return {"intent": "research", "agent": "researcher", "confidence": confidence}
+        elif intent == "system":
+            return {"intent": "system", "agent": "system", "confidence": confidence}
+        else:
+            return {"intent": "unknown", "agent": "fallback", "confidence": confidence}
+            
+    except Exception as e:
+        logger.warning("LLM routing failed: %s. Falling back to simple heuristic.", e)
+        # Basic fallback heuristic
+        task_lower = task.lower()
+        if any(k in task_lower for k in ["code", "python", "array", "algorithm", "function", "bug"]):
+            return {"intent": "coding", "agent": "coder", "confidence": 0.6}
+        elif any(k in task_lower for k in ["search", "find", "who", "what", "explain"]):
+            return {"intent": "research", "agent": "researcher", "confidence": 0.6}
+        
+        return {"intent": "unknown", "agent": "fallback", "confidence": 0.0}

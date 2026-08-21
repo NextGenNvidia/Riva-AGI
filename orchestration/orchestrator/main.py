@@ -1,5 +1,10 @@
 import logging
+import sys
 from typing import TypedDict
+
+# Ensure Windows PowerShell/cmd supports full Unicode/emojis without charmap errors
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
@@ -13,6 +18,7 @@ from orchestration import InputData, AgentResponse, ResponseStatus, InputType
 import orchestration.agents.coder
 import orchestration.agents.researcher
 import orchestration.agents.dummy_system_agent
+import orchestration.agents.system_agent
 
 load_dotenv()
 
@@ -123,7 +129,7 @@ def fallback_node(state: AgentState):
     
     fallback_response = AgentResponse(
         agent_id="fallback",
-        status=ResponseStatus.FAILED,
+        status=ResponseStatus.FAILURE,
         content="I couldn't confidently determine which agent should handle this task.",
         tool_calls=[],
         execution_time_ms=0.0
@@ -169,12 +175,16 @@ def create_orchestrator():
 
 def run_orchestrator(
     task_text: str,
-    task_id: str = "task-final-int",
+    task_id: str | None = None,
     session_id: str = "session-001",
     source: str = "cli",
 ) -> dict:
 
     try:
+        import uuid
+        if not task_id or task_manager.get_task_status(task_id):
+            task_id = f"task-{uuid.uuid4().hex[:8]}"
+
         app = create_orchestrator()
         
         # Package the raw string into our strict Schema
@@ -234,5 +244,9 @@ if __name__ == "__main__":
     print("\n" + "="*60)
     print("  FINAL TASK HISTORY (O3 TRACKER)")
     print("="*60)
-    final_history = task_manager.get_task_status("task-final-int")
-    print(final_history.model_dump_json(indent=2))
+    task_id = result.get("task_id", "")
+    final_history = task_manager.get_task_status(task_id)
+    if final_history:
+        print(final_history.model_dump_json(indent=2))
+    else:
+        print(f"Task history for '{task_id}' not found.")

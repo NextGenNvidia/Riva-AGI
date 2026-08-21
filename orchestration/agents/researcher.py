@@ -1,27 +1,49 @@
+"""
+Autonomous Researcher Agent — orchestration/agents/researcher.py
+=================================================================
+Autonomous research and information retrieval agent for Riva-AGI.
+Capable of web queries, extracting webpage text, analyzing institutional data,
+and synthesizing structured research summaries.
+"""
+
 import logging
-import time
-from orchestration.orchestrator.registry import registry, AgentCapabilities
-from orchestration import InputData, AgentResponse, ResponseStatus
+from orchestration.agents.base import BaseAgent
+from orchestration.llm.prompts import RESEARCHER_AGENT_SYSTEM_PROMPT
+from orchestration.orchestrator.registry import AgentCapabilities, registry
+from orchestration.orchestrator.schemas.input import InputData
+from orchestration.orchestrator.schemas.response import AgentResponse
 
 logger = logging.getLogger(__name__)
 
+# Authorized tool suite for Researcher Agent
+RESEARCHER_TOOLS = [
+    "web_search",
+    "fetch_webpage",
+    "read_file",
+    "get_current_time",
+    "calculate",
+]
 
-@registry.register("researcher", AgentCapabilities(description="Handles internet research and data gathering.", tools=["search_web"]))
+# Instantiate core autonomous agent instance
+researcher_instance = BaseAgent(
+    agent_id="researcher",
+    description="Autonomous researcher capable of live web queries, webpage reading, and multi-source data synthesis.",
+    system_prompt=RESEARCHER_AGENT_SYSTEM_PROMPT,
+    tool_names=RESEARCHER_TOOLS,
+)
+
+
+@registry.register(
+    "researcher",
+    AgentCapabilities(
+        description="Handles live web research, information retrieval, webpage reading, and fact synthesis.",
+        tools=RESEARCHER_TOOLS,
+    ),
+)
 def researcher_agent(task_data: InputData) -> AgentResponse:
-    logger.info("Routing to Researcher Agent")
-    
-    # Simulate execution time
-    start_time = time.time()
-    
-    content = f"Researcher Agent investigated: {task_data.text_content}"
-    
-    execution_time = (time.time() - start_time) * 1000
-    
-    return AgentResponse(
-        agent_id="researcher",
-        status=ResponseStatus.SUCCESS,
-        content=content,
-        tool_calls=[],
-        execution_time_ms=execution_time,
-        metadata={"processed_modality": task_data.input_type.value}
-    )
+    """
+    Standard entrypoint called by the Root Orchestrator.
+    Executes the autonomous ReAct research loop.
+    """
+    logger.info("Executing Autonomous Researcher Agent")
+    return researcher_instance.run(task_data)
