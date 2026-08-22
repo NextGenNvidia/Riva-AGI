@@ -14,7 +14,18 @@ def intent_classifier_agent(task_data: InputData) -> AgentResponse:
     
     my_key = key_manager.get_api_key_for_role("INTENT")
     # System instruction tailored for this agent
-    sys_prompt = f"You are the intent_classifier agent. Your job is to fulfill the user's request expertly."
+    sys_prompt = """You are the Intent Classifier Manager in an Agentic AI system.
+Your job is to read the user's task and output a JSON block describing the intent.
+Determine if the task is simple (can be done by one specialized worker agent) or complex (requires multi-step planning).
+If simple, specify the 'target_agent' (e.g., 'coder', 'devops', 'writer', 'seo_specialist', 'qa_tester', 'designer', etc.).
+If complex, set 'target_agent' to 'planner'.
+You MUST output ONLY a valid JSON object with the following schema:
+{
+  "complexity": "simple" | "complex",
+  "target_agent": "agent_name",
+  "intent": "short description of intent",
+  "confidence": 0.9
+}"""
     
     # Call the GenAI LLM
     content = call_gemini(

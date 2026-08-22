@@ -7,14 +7,14 @@ logger = logging.getLogger(__name__)
 
 # Define the Multi-Model Architecture Mapping
 MODEL_MAPPING = {
-    # Level 2 Managers (High Reasoning)
-    "intent_classifier": "gemini-3.7-flash",
-    "planner": "gemini-3.7-flash",
-    "executor": "gemini-3.7-flash",
-    "reviewer": "gemini-3.7-flash",
+    # Level 2 Managers (High Reasoning & Orchestration)
+    "intent_classifier": "gemini-3.5-flash-lite",  # Called frequently, needs high RPM
+    "executor": "gemini-3.5-flash-lite",           # Called frequently in loops
+    "planner": "gemini-3.0-flash",                   # Deep reasoning, called once
+    "reviewer": "gemini-3.0-flash",                  # Deep reasoning, called once
     
     # Level 3 Complex Workers (Balanced)
-    "coder": "gemini-3.5-flash-lite",
+    "coder": "gemini-3.1-flash-lite",
     "reasoner": "gemini-3.1-flash-lite",
     "devops": "gemini-3.1-flash-lite",
     "security_auditor": "gemini-3.1-flash-lite",
@@ -22,9 +22,9 @@ MODEL_MAPPING = {
     # Level 3 Standard Workers (Fast Execution)
     "writer": "gemini-3.5-flash-lite",
     "designer": "gemini-3.5-flash-lite",
-    "qa_tester": "gemini-3.5-flash-lite",
-    "data_analyst": "gemini-3.5-flash-lite",
-    "seo_specialist": "gemini-3.5-flash-lite",
+    "qa_tester": "gemini-3.1-flash-lite",
+    "data_analyst": "gemini-3.1-flash-lite",
+    "seo_specialist": "gemini-3.1-flash-lite",
     "researcher": "gemini-3.5-flash-lite",
     "dummy_system": "gemini-3.5-flash-lite"
 }
@@ -55,11 +55,11 @@ def call_gemini(prompt: str, api_key: str, system_instruction: str, agent_id: st
         )
         return response.text
     except APIError as e:
-        logger.warning(f"Agent [{agent_id}] failed with model {model_name}: {e}. Falling back to gemini-2.5-flash")
+        logger.warning(f"Agent [{agent_id}] failed with model {model_name}: {e}. Falling back to gemini-3.5-flash-lite")
         try:
             # Fallback for experimental or unavailable models
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.5-flash-lite",
                 contents=prompt,
                 config=config
             )

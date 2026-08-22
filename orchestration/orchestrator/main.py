@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import TypedDict
 
 from dotenv import load_dotenv
@@ -44,139 +45,191 @@ class AgentState(TypedDict):
     task_id: str
     session_id: str
     source: str
+    
+    # Hierarchical State Variables
+    complexity: str # "simple" or "complex"
+    routing_decision: str # target agent or action ("delegate", "review")
+    plan: list[dict] # [{"agent": "coder", "task": "..."}]
+    current_step: int # index of the current plan step
+    completed_steps: list[dict] # [{"agent": "...", "result": "..."}]
+    feedback: str # feedback from reviewer
+    
     intent: str
     confidence: float
 
 
-def route_task(state: AgentState):
+def clean_json(text: str) -> str:
+    """Helper to clean markdown json blocks."""
+    if text.startswith("```json"):
+        text = text[7:]
+    if text.endswith("```"):
+        text = text[:-3]
+    return text.strip()
+
+def intent_node(state: AgentState):
+    task_id = state["task_id"]
+    task_text = state["task_payload"].text_content or ""
+    task_manager.start_task(task_id=task_id, initial_data={"task": task_text})
+    task_manager.update_task_state(task_id, "intent_classifier", TaskStatus.IN_PROGRESS)
+    
+    handler = registry.get_agent("intent_classifier")
+    response = handler(state["task_payload"])
+    
     try:
-        task_text = state["task_payload"].text_content or ""
-        task_id = state["task_id"]
-        
-        # Log state: Started
-        task_manager.start_task(
-            task_id=task_id, 
-            initial_data={"task": task_text}
-        )
-        
-        # Determine Routing
-        classification = classify_intent(task_text)
-        chosen_agent = classification["agent"]
-        
-        # Check if the chosen agent actually exists in our dynamic registry
-        all_agents = registry.get_all_capabilities()
-        if chosen_agent not in all_agents:
-            chosen_agent = "fallback"
-
-        logger.info(f"Orchestrator routed task to: {chosen_agent}")
-        
-        # Update state: In Progress
-        task_manager.update_task_state(
-            task_id=task_id, 
-            new_owner="orchestrator_router", 
-            status=TaskStatus.IN_PROGRESS
-        )
-
-        return {
-            "intent": classification["intent"],
-            "agent": chosen_agent,
-            "confidence": classification["confidence"],
-            "task_id": task_id,
-            "session_id": state["session_id"],
-            "source": state["source"],
-        }
-
+        data = json.loads(clean_json(response.content))
+        complexity = data.get("complexity", "simple")
+        routing_decision = data.get("target_agent", "fallback")
     except Exception:
-        logger.exception("Failed to classify task")
-        raise
+        complexity = "simple"
+        routing_decision = "fallback"
+        
+    task_manager.update_task_state(task_id, "intent_classifier", TaskStatus.COMPLETED)
+    
+    return {
+        "complexity": complexity, 
+        "routing_decision": routing_decision,
+        "agent": routing_decision
+    }
 
+def planner_node(state: AgentState):
+    task_id = state["task_id"]
+    task_manager.update_task_state(task_id, "planner", TaskStatus.IN_PROGRESS)
+    
+    handler = registry.get_agent("planner")
+    response = handler(state["task_payload"])
+    
+    try:
+        plan = json.loads(clean_json(response.content))
+    except Exception:
+        plan = []
+        
+    task_manager.update_task_state(task_id, "planner", TaskStatus.COMPLETED)
+    return {"plan": plan, "current_step": 0, "completed_steps": []}
+
+def executor_node(state: AgentState):
+    task_id = state["task_id"]
+    task_manager.update_task_state(task_id, "executor", TaskStatus.IN_PROGRESS)
+    
+    # Let executor see the plan and what's done
+    executor_prompt = f"Plan: {json.dumps(state['plan'])}\nCompleted: {json.dumps(state['completed_steps'])}"
+    from orchestration import InputData, InputType
+    temp_payload = InputData(input_type=InputType.TEXT, text_content=executor_prompt)
+    
+    handler = registry.get_agent("executor")
+    response = handler(temp_payload)
+    
+    try:
+        data = json.loads(clean_json(response.content))
+        action = data.get("action", "delegate")
+        target = data.get("target", "fallback")
+    except Exception:
+        action = "review"
+        target = "reviewer"
+        
+    task_manager.update_task_state(task_id, "executor", TaskStatus.COMPLETED)
+    return {"routing_decision": target, "agent": target}
+
+def reviewer_node(state: AgentState):
+    task_id = state["task_id"]
+    task_manager.update_task_state(task_id, "reviewer", TaskStatus.IN_PROGRESS)
+    
+    review_prompt = f"Original: {state['task_payload'].text_content}\nOutput: {json.dumps(state['completed_steps'])}"
+    from orchestration import InputData, InputType
+    temp_payload = InputData(input_type=InputType.TEXT, text_content=review_prompt)
+    
+    handler = registry.get_agent("reviewer")
+    response = handler(temp_payload)
+    
+    try:
+        data = json.loads(clean_json(response.content))
+        status = data.get("status", "approved")
+        feedback = data.get("feedback", "")
+    except Exception:
+        status = "approved"
+        feedback = ""
+        
+    task_manager.update_task_state(task_id, "reviewer", TaskStatus.COMPLETED)
+    return {"routing_decision": status, "feedback": feedback, "response_payload": response}
 
 def create_agent_node(agent_name: str):
-    """Dynamically generates a LangGraph node function for a given registered agent."""
     def node_func(state: AgentState):
-        try:
-            task_id = state["task_id"]
-            
-            # Update state manager tracker
-            task_manager.update_task_state(
-                task_id=task_id, 
-                new_owner=agent_name, 
-                status=TaskStatus.IN_PROGRESS
-            )
-            
-            # Fetch handler from registry and execute
-            handler = registry.get_agent(agent_name)
-            if not handler:
-                raise ValueError(f"Agent {agent_name} not found in registry.")
-                
-            response = handler(state["task_payload"])
-            
-            # Update state manager tracker on completion
-            task_manager.update_task_state(
-                task_id=task_id, 
-                new_owner=agent_name, 
-                status=TaskStatus.COMPLETED
-            )
-            
-            return {"response_payload": response, "task_id": task_id}
-            
-        except Exception:
-            logger.exception(f"{agent_name.capitalize()} agent failed")
-            # Update state manager tracker on failure
-            task_manager.update_task_state(
-                task_id=state["task_id"], 
-                new_owner=agent_name, 
-                status=TaskStatus.FAILED
-            )
-            raise
+        task_id = state["task_id"]
+        task_manager.update_task_state(task_id, agent_name, TaskStatus.IN_PROGRESS)
+        
+        handler = registry.get_agent(agent_name)
+        response = handler(state["task_payload"])
+        
+        # Append to completed steps if in a complex loop
+        completed = list(state.get("completed_steps", []))
+        completed.append({"agent": agent_name, "result": response.content})
+        
+        task_manager.update_task_state(task_id, agent_name, TaskStatus.COMPLETED)
+        return {"response_payload": response, "completed_steps": completed}
     return node_func
-
 
 def fallback_node(state: AgentState):
     task_id = state["task_id"]
-    task_manager.update_task_state(task_id, new_owner="fallback", status=TaskStatus.FAILED)
+    task_manager.update_task_state(task_id, "fallback", TaskStatus.FAILED)
+    return {"routing_decision": "approved"}
+
+def route_after_intent(state: AgentState) -> str:
+    if state["complexity"] == "complex":
+        return "planner"
+    return state["routing_decision"]
+
+def route_after_executor(state: AgentState) -> str:
+    if state["routing_decision"] == "reviewer":
+        return "reviewer"
+    return state["routing_decision"]
     
-    fallback_response = AgentResponse(
-        agent_id="fallback",
-        status=ResponseStatus.FAILURE,
-        content="I couldn't confidently determine which agent should handle this task.",
-        tool_calls=[],
-        execution_time_ms=0.0
-    )
-    return {"response_payload": fallback_response}
-
-
-def route_decision(state: AgentState) -> str:
-    return state["agent"]
-
+def route_after_worker(state: AgentState) -> str:
+    if state["complexity"] == "complex":
+        return "executor"
+    return END
+    
+def route_after_reviewer(state: AgentState) -> str:
+    if state["routing_decision"] == "rejected":
+        return "executor"
+    return END
 
 def create_orchestrator():
     graph = StateGraph(AgentState)
 
-    graph.add_node("route", route_task)
+    graph.add_node("intent", intent_node)
+    graph.add_node("planner", planner_node)
+    graph.add_node("executor", executor_node)
+    graph.add_node("reviewer", reviewer_node)
+    graph.add_node("fallback", fallback_node)
     
-    # 1. Dynamically add all agents from Registry
+    # Add Worker Agents
     registered_agents = registry.get_all_capabilities().keys()
-    for agent_name in registered_agents:
+    workers = [a for a in registered_agents if a not in ["intent_classifier", "planner", "executor", "reviewer"]]
+    for agent_name in workers:
         graph.add_node(agent_name, create_agent_node(agent_name))
         
-    graph.add_node("fallback", fallback_node)
-    graph.add_edge(START, "route")
+    graph.add_edge(START, "intent")
 
-    # 2. Setup Conditional Edges
-    condition_map = {agent: agent for agent in registered_agents}
-    condition_map["fallback"] = "fallback"
+    # Intent routing
+    intent_map = {w: w for w in workers}
+    intent_map["planner"] = "planner"
+    intent_map["fallback"] = "fallback"
+    graph.add_conditional_edges("intent", route_after_intent, intent_map)
     
-    graph.add_conditional_edges(
-        "route",
-        route_decision,
-        condition_map,
-    )
-
-    # 3. All agents route to END
-    for agent_name in registered_agents:
-        graph.add_edge(agent_name, END)
+    # Planner -> Executor
+    graph.add_edge("planner", "executor")
+    
+    # Executor routing
+    exec_map = {w: w for w in workers}
+    exec_map["reviewer"] = "reviewer"
+    exec_map["fallback"] = "fallback"
+    graph.add_conditional_edges("executor", route_after_executor, exec_map)
+    
+    # Worker routing (back to executor if complex, else END)
+    for agent_name in workers:
+        graph.add_conditional_edges(agent_name, route_after_worker, {"executor": "executor", END: END})
         
+    # Reviewer routing
+    graph.add_conditional_edges("reviewer", route_after_reviewer, {"executor": "executor", END: END})
     graph.add_edge("fallback", END)
 
     return graph.compile()
@@ -216,6 +269,12 @@ def run_orchestrator(
                 "task_id": task_id,
                 "session_id": session_id,
                 "source": source,
+                "complexity": "simple",
+                "routing_decision": "fallback",
+                "plan": [],
+                "current_step": 0,
+                "completed_steps": [],
+                "feedback": "",
                 "intent": "unknown",
                 "confidence": 0.0,
             }

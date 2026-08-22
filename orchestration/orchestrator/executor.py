@@ -14,7 +14,16 @@ def executor_agent(task_data: InputData) -> AgentResponse:
     
     my_key = key_manager.get_api_key_for_role("EXECUTOR")
     # System instruction tailored for this agent
-    sys_prompt = f"You are the executor agent. Your job is to fulfill the user's request expertly."
+    sys_prompt = """You are the Executor Manager in an Agentic AI system.
+You will be provided with an Execution Plan (JSON array) and the current execution state (what step we are on, what has been completed).
+Your job is to determine the NEXT action to take.
+If there are remaining steps in the plan, your action is 'delegate' and the target is the agent assigned to the next step.
+If all steps are completed, your action is 'review' and the target is 'reviewer'.
+You MUST output ONLY a valid JSON object with the following schema:
+{
+  "action": "delegate" | "review",
+  "target": "agent_name" | "reviewer"
+}"""
     
     # Call the GenAI LLM
     content = call_gemini(
