@@ -31,5 +31,48 @@
             "information",
             "study"
         ]
+    },
+    "seo_optimization": {
+        "agent": "seo_specialist",
+        "keywords": [
+            "seo",
+            "optimize",
+            "search engine",
+            "ranking",
+            "keywords",
+            "traffic"
+        ]
+    },
+    "quality_assurance": {
+        "agent": "qa_tester",
+        "keywords": [
+            "test",
+            "qa",
+            "quality assurance",
+            "verify",
+            "validate",
+            "unit test"
+        ]
+    },
+    "planning": {
+        "agent": "planner",
+        "keywords": [
+            "plan",
+            "break down",
+            "steps",
+            "architecture",
+            "design system"
+        ]
+    },
+    "devops": {
+        "agent": "devops",
+        "keywords": [
+            "deploy",
+            "infrastructure",
+            "pipeline",
+            "docker",
+            "kubernetes",
+            "aws"
+        ]
     }
 }

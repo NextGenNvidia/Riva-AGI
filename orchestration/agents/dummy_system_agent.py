@@ -7,6 +7,8 @@ import logging
 import time
 from orchestration.orchestrator.registry import registry, AgentCapabilities
 from orchestration import InputData, AgentResponse, ResponseStatus
+from orchestration.orchestrator.config import key_manager
+from orchestration.orchestrator.llm import call_gemini
 
 # Setup standard logger
 logger = logging.getLogger(__name__)
@@ -15,7 +17,8 @@ logger = logging.getLogger(__name__)
     name="dummy_system",
     capabilities=AgentCapabilities(
         description="Handles system-level operations like reading files or checking memory.",
-        tools=["list_files", "check_memory"]
+        tools=["list_files", "check_memory"],
+        agent_level="TASK_DOER"
     )
 )
 def dummy_system_agent(task_data: InputData) -> AgentResponse:
@@ -27,8 +30,18 @@ def dummy_system_agent(task_data: InputData) -> AgentResponse:
     
     start_time = time.time()
     
-    # Process
-    content = f"System Agent completed: {task_data.text_content}"
+    # Assign and fetch the API key dynamically based on its exact role
+    my_key = key_manager.get_api_key_for_role("WORKER_10")
+    # System instruction tailored for this agent
+    sys_prompt = f"You are the dummy_system agent. Your job is to fulfill the user's request expertly."
+    
+    # Call the GenAI LLM
+    content = call_gemini(
+        prompt=task_data.text_content, 
+        api_key=my_key, 
+        system_instruction=sys_prompt, 
+        agent_id="dummy_system"
+    )
     
     execution_time = (time.time() - start_time) * 1000
     
