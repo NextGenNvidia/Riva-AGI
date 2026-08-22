@@ -85,16 +85,26 @@ def intent_node(state: AgentState):
         data = json.loads(clean_json(response.content))
         complexity = data.get("complexity", "simple")
         routing_decision = data.get("target_agent", "fallback")
+        intent = data.get("intent", "unknown")
+        confidence = data.get("confidence", 0.0)
+        if routing_decision not in registry.get_all_capabilities() and routing_decision not in ["planner", "fallback"]:
+            routing_decision = "fallback"
     except Exception:
+        # Fall back to the rule-based router if JSON fails
+        classification = classify_intent(task_text)
         complexity = "simple"
-        routing_decision = "fallback"
+        routing_decision = classification["agent"]
+        intent = classification["intent"]
+        confidence = classification["confidence"]
         
     task_manager.update_task_state(task_id, "intent_classifier", TaskStatus.COMPLETED)
     
     return {
         "complexity": complexity, 
         "routing_decision": routing_decision,
-        "agent": routing_decision
+        "agent": routing_decision,
+        "intent": intent,
+        "confidence": confidence
     }
 
 def planner_node(state: AgentState):
@@ -128,6 +138,10 @@ def executor_node(state: AgentState):
         data = json.loads(clean_json(response.content))
         action = data.get("action", "delegate")
         target = data.get("target", "fallback")
+        if action == "review":
+            target = "reviewer"
+        elif target not in registry.get_all_capabilities() and target != "fallback":
+            target = "fallback"
     except Exception:
         action = "review"
         target = "reviewer"
@@ -176,7 +190,17 @@ def create_agent_node(agent_name: str):
 def fallback_node(state: AgentState):
     task_id = state["task_id"]
     task_manager.update_task_state(task_id, "fallback", TaskStatus.FAILED)
-    return {"routing_decision": "approved"}
+    
+    # Return a dummy response_payload so downstream consumers (like CLI) don't crash
+    from orchestration import AgentResponse, ResponseStatus
+    dummy_response = AgentResponse(
+        agent_id="fallback",
+        status=ResponseStatus.FAILURE,
+        content="Fallback agent reached due to invalid routing or missing capabilities.",
+        tool_calls=[],
+        error_message="Fallback reached."
+    )
+    return {"routing_decision": "approved", "response_payload": dummy_response}
 
 def route_after_intent(state: AgentState) -> str:
     if state["complexity"] == "complex":
@@ -253,10 +277,12 @@ def run_orchestrator(
         if task_id is None:
             task_id = f"task-{uuid.uuid4().hex[:8]}"
 
-        # Orchestrator (CEO) dynamically loads its API key here
-        ceo_key = key_manager.get_api_key_for_role("CEO")
-        masked_ceo_key = f"{ceo_key[:8]}...{ceo_key[-4:]}" if ceo_key else "No Key Found"
-        logger.info(f"[CEO Orchestrator] Initialized with API Key: {masked_ceo_key}")
+        # Orchestrator dynamically loads its API key here
+        orchestrator_key = key_manager.get_api_key_for_role("ORCHESTRATOR")
+        if orchestrator_key:
+            logger.info("[Orchestrator] Initialized with Gemini API key from env (GEMINI_API_KEY_ORCHESTRATOR)")
+        else:
+            logger.warning("[Orchestrator] GEMINI_API_KEY_ORCHESTRATOR is not set; running without LLM access")
 
         app = create_orchestrator()
         

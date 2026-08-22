@@ -33,11 +33,10 @@ def call_gemini(prompt: str, api_key: str, system_instruction: str, agent_id: st
     """
     Calls the Google GenAI SDK using the specific model assigned to the agent.
     If the specified model fails (e.g., if a future model name is not yet active in the API), 
-    it falls back to standard gemini-2.5-flash to ensure resilience.
+    it falls back to standard gemini-3.5-flash-lite to ensure resilience.
     """
     if not api_key:
-        return "ERROR: API Key is missing for this agent."
-        
+        raise ValueError("API Key is missing for this agent.")
     model_name = MODEL_MAPPING.get(agent_id, "gemini-2.5-flash")
     client = genai.Client(api_key=api_key)
     
