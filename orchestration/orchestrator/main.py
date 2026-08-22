@@ -78,10 +78,9 @@ def intent_node(state: AgentState):
     task_manager.start_task(task_id=task_id, initial_data={"task": task_text})
     task_manager.update_task_state(task_id, "intent_classifier", TaskStatus.IN_PROGRESS)
     
-    handler = registry.get_agent("intent_classifier")
-    response = handler(state["task_payload"])
-    
     try:
+        handler = registry.get_agent("intent_classifier")
+        response = handler(state["task_payload"])
         data = json.loads(clean_json(response.content))
         complexity = data.get("complexity", "simple")
         routing_decision = data.get("target_agent", "fallback")

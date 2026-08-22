@@ -1,7 +1,12 @@
 import logging
-from google import genai
-from google.genai import types
-from google.genai.errors import APIError
+try:
+    from google import genai
+    from google.genai import types
+    from google.genai.errors import APIError
+except ImportError:
+    genai = None
+    types = None
+    APIError = Exception
 
 logger = logging.getLogger(__name__)
 
