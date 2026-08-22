@@ -27,8 +27,8 @@ def load_routing_config() -> dict:
         return json.load(file)
 
 
-def classify_intent(task: str) -> IntentClassification:
-    """Classify a task using configurable routing rules."""
+def classify_intent(task: str) -> dict:
+    """Classify a task using configurable routing rules dynamically."""
 
     task = task.strip()
 
@@ -43,31 +43,27 @@ def classify_intent(task: str) -> IntentClassification:
     task_lower = task.lower()
     config = load_routing_config()
 
-    coding_keywords = config["coding"]["keywords"]
-    research_keywords = config["research"]["keywords"]
+    best_intent = "unknown"
+    best_agent = "fallback"
+    max_matches = 0
 
-    coding_matches = sum(
-        keyword.lower() in task_lower
-        for keyword in coding_keywords
-    )
+    # Dynamically score every intent defined in the config
+    for intent_name, intent_data in config.items():
+        agent_name = intent_data["agent"]
+        keywords = intent_data["keywords"]
+        
+        matches = sum(keyword.lower() in task_lower for keyword in keywords)
+        
+        if matches > max_matches:
+            max_matches = matches
+            best_intent = intent_name
+            best_agent = agent_name
 
-    research_matches = sum(
-        keyword.lower() in task_lower
-        for keyword in research_keywords
-    )
-
-    if coding_matches > research_matches and coding_matches > 0:
+    if max_matches > 0:
         return {
-            "intent": "coding",
-            "agent": "coder",
-            "confidence": min(0.6 + (coding_matches * 0.1), 0.95),
-        }
-
-    if research_matches > coding_matches and research_matches > 0:
-        return {
-            "intent": "research",
-            "agent": "researcher",
-            "confidence": min(0.6 + (research_matches * 0.1), 0.95),
+            "intent": best_intent,
+            "agent": best_agent,
+            "confidence": min(0.6 + (max_matches * 0.1), 0.95),
         }
 
     return {

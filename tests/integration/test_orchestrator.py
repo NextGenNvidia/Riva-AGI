@@ -8,7 +8,8 @@ def test_coding_task_orchestration():
 
     assert result["agent"] == "coder"
     assert result["intent"] == "coding"
-    assert "Coder Agent processed text" in result["response_payload"].content
+    assert "Coder Agent" in result["response_payload"].content
+    assert "processed text" in result["response_payload"].content
 
 
 def test_unknown_task_uses_fallback():

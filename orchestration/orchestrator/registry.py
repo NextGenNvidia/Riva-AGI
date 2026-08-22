@@ -3,16 +3,20 @@
 Allows agents to securely register themselves with their capabilities and tools.
 """
 import logging
-from typing import Callable, Dict, Any, Optional, List
+from typing import Callable, Dict, Any, Optional, List, Literal
 from pydantic import BaseModel, Field
 
 # Setup standard logger
 logger = logging.getLogger(__name__)
 
+# Re-use the AgentLevel literal
+AgentLevel = Literal["CEO", "MANAGER", "TASK_DOER"]
+
 class AgentCapabilities(BaseModel):
     """Strictly typed capabilities exposed by a registered agent."""
     description: str = Field(..., description="A short description of what the agent does.")
     tools: List[str] = Field(default_factory=list, description="A list of tool names the agent can execute.")
+    agent_level: AgentLevel = Field("TASK_DOER", description="The hierarchical level of the agent (CEO, MANAGER, TASK_DOER).")
 
 class AgentRegistry:
     """

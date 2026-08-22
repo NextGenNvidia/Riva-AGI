@@ -6,12 +6,27 @@ from langgraph.graph import StateGraph, START, END
 
 from orchestration.orchestrator.registry import registry
 from orchestration.orchestrator.state_manager import TaskStateManager, TaskStatus
+from orchestration.orchestrator.config import key_manager
 from orchestration.orchestrator.router import classify_intent
 from orchestration import InputData, AgentResponse, ResponseStatus, InputType
 
-# Ensure all agents are loaded and registered
+# Level 2 Managers
+import orchestration.orchestrator.intent_classifier
+import orchestration.orchestrator.planner
+import orchestration.orchestrator.executor
+import orchestration.orchestrator.reviewer
+
+# Level 3 Task-Doers
 import orchestration.agents.coder
 import orchestration.agents.researcher
+import orchestration.agents.writer
+import orchestration.agents.reasoner
+import orchestration.agents.designer
+import orchestration.agents.qa_tester
+import orchestration.agents.data_analyst
+import orchestration.agents.devops
+import orchestration.agents.security_auditor
+import orchestration.agents.seo_specialist
 import orchestration.agents.dummy_system_agent
 
 load_dotenv()
@@ -103,7 +118,7 @@ def create_agent_node(agent_name: str):
                 status=TaskStatus.COMPLETED
             )
             
-            return {"response_payload": response}
+            return {"response_payload": response, "task_id": task_id}
             
         except Exception:
             logger.exception(f"{agent_name.capitalize()} agent failed")
@@ -123,7 +138,7 @@ def fallback_node(state: AgentState):
     
     fallback_response = AgentResponse(
         agent_id="fallback",
-        status=ResponseStatus.FAILED,
+        status=ResponseStatus.FAILURE,
         content="I couldn't confidently determine which agent should handle this task.",
         tool_calls=[],
         execution_time_ms=0.0
@@ -169,12 +184,21 @@ def create_orchestrator():
 
 def run_orchestrator(
     task_text: str,
-    task_id: str = "task-final-int",
+    task_id: str = None,
     session_id: str = "session-001",
     source: str = "cli",
 ) -> dict:
 
     try:
+        import uuid
+        if task_id is None:
+            task_id = f"task-{uuid.uuid4().hex[:8]}"
+
+        # Orchestrator (CEO) dynamically loads its API key here
+        ceo_key = key_manager.get_api_key_for_role("CEO")
+        masked_ceo_key = f"{ceo_key[:8]}...{ceo_key[-4:]}" if ceo_key else "No Key Found"
+        logger.info(f"[CEO Orchestrator] Initialized with API Key: {masked_ceo_key}")
+
         app = create_orchestrator()
         
         # Package the raw string into our strict Schema
@@ -234,5 +258,5 @@ if __name__ == "__main__":
     print("\n" + "="*60)
     print("  FINAL TASK HISTORY (O3 TRACKER)")
     print("="*60)
-    final_history = task_manager.get_task_status("task-final-int")
+    final_history = task_manager.get_task_status(result["task_id"])
     print(final_history.model_dump_json(indent=2))
