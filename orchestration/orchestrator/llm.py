@@ -10,8 +10,8 @@ MODEL_MAPPING = {
     # Level 2 Managers (High Reasoning & Orchestration)
     "intent_classifier": "gemini-3.5-flash-lite",  # Called frequently, needs high RPM
     "executor": "gemini-3.5-flash-lite",           # Called frequently in loops
-    "planner": "gemini-3.0-flash",                   # Deep reasoning, called once
-    "reviewer": "gemini-3.0-flash",                  # Deep reasoning, called once
+    "planner": "gemini-3.5-flash",                   # Deep reasoning, called once
+    "reviewer": "gemini-3.5-flash",                  # Deep reasoning, called once
     
     # Level 3 Complex Workers (Balanced)
     "coder": "gemini-3.1-flash-lite",

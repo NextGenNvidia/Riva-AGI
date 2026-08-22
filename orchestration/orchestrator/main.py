@@ -1,3 +1,9 @@
+import os
+import sys
+
+# Ensure the root directory is in the Python path so absolute imports work
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 import logging
 import json
 from typing import TypedDict
