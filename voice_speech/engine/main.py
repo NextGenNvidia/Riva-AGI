@@ -39,8 +39,8 @@ def print_banner(settings: Settings) -> None:
     print(f"  • Audio In:     16,000 Hz, 16-bit Mono (20ms frames / 640 bytes)")
     print(f"  • Audio Out:    24,000 Hz, 16-bit Mono (~40ms prebuffer)")
     print(f"  • VAD Silence:  {settings.vad.silence_duration_ms} ms (Prefix: {settings.vad.prefix_padding_ms} ms)")
-    mode = settings.audio_in.audio_mode
-    detected = "Headset / Earphones 🎧 (Full Duplex — Voice Barge-In Active)" if mode == "headset" else "Built-in Speaker 🔊 (Full Answer Complete — Zero Echo)"
+    mode = settings.audio_in.output_mode
+    detected = "Headset / Earphones 🎧 (Full Duplex — Voice Barge-In Active)" if mode == "earphones" else "Built-in Speaker 🔊 (Full Answer Complete — Zero Echo)"
     print(f"  • Audio Mode:   {detected}")
     print(f"  • Default In:   Device index {defaults.get('input')}")
     print(f"  • Default Out:  Device index {defaults.get('output')}")

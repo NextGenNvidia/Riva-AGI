@@ -33,6 +33,14 @@ logger = logging.getLogger("riva.web_server")
 
 settings = Settings()
 
+# Validate API key at startup (fail fast with a helpful message)
+if not settings.gemini.api_key:
+    logger.error(
+        "GEMINI_API_KEY is not set! "
+        "Copy voice_speech/.env.example to .env and add your key from https://aistudio.google.com/app/apikey"
+    )
+    sys.exit(1)
+
 # Pre-warmed Gemini client singleton
 genai_client = genai.Client(api_key=settings.gemini.api_key)
 
@@ -40,6 +48,11 @@ app = FastAPI(title="Riva WebRTC Gateway")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
+
+# Concurrent session limiter — prevents unbounded quota burn
+MAX_CONCURRENT_SESSIONS = int(os.getenv("MAX_CONCURRENT_SESSIONS", "5"))
+_active_sessions = 0
+_session_lock = asyncio.Lock()
 
 
 @app.get("/")
@@ -65,12 +78,36 @@ async def get_favicon():
 
 @app.websocket("/ws")
 async def audio_websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
+    global _active_sessions
+
+    # Origin validation — only allow localhost and same-origin connections
+    origin = websocket.headers.get("origin", "")
+    allowed_origins = {"http://localhost:8000", "http://localhost", "http://127.0.0.1:8000", "https://localhost:8000"}
+    if origin and origin not in allowed_origins:
+        logger.warning(f"Rejected WebSocket from unauthorized origin: {origin}")
+        await websocket.close(code=4003, reason="Origin not allowed")
+        return
+
+    # Enforce concurrent session cap
+    async with _session_lock:
+        if _active_sessions >= MAX_CONCURRENT_SESSIONS:
+            await websocket.accept()
+            await websocket.send_json({"type": "error", "message": f"Server at capacity ({MAX_CONCURRENT_SESSIONS} sessions). Try again later."})
+            await websocket.close(code=4029)
+            return
+        _active_sessions += 1
+
+    try:
+        await websocket.accept()
+    except Exception:
+        async with _session_lock:
+            _active_sessions -= 1
+        return
 
     # Read voice and language directly from query parameters
     voice = websocket.query_params.get("voice") or "Aoede"
     language = websocket.query_params.get("language") or "auto"
-    logger.info(f"Browser WebRTC client connected to /ws (voice={voice}, language={language})")
+    logger.info(f"Browser WebRTC client connected to /ws (voice={voice}, language={language}) [{_active_sessions}/{MAX_CONCURRENT_SESSIONS} sessions]")
 
     client = genai_client
     mic_queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=30)
@@ -318,6 +355,10 @@ async def audio_websocket_endpoint(websocket: WebSocket):
         logger.info("Browser client disconnected cleanly.")
     except Exception as e:
         logger.error(f"WebSocket session exception: {e}", exc_info=True)
+    finally:
+        async with _session_lock:
+            _active_sessions = max(0, _active_sessions - 1)
+        logger.info(f"Session released [{_active_sessions}/{MAX_CONCURRENT_SESSIONS} sessions]")
 
 
 if __name__ == "__main__":

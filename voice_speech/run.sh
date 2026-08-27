@@ -12,8 +12,10 @@ cd "$PROJECT_ROOT"
 if [ ! -d ".venv" ]; then
     echo "Creating Python virtual environment..."
     python3 -m venv .venv
-    .venv/bin/pip install -r voice_speech/requirements.txt
 fi
+
+# Always sync dependencies (picks up requirements.txt changes)
+.venv/bin/pip install -q -r voice_speech/requirements.txt
 
 # Activate virtual environment
 source .venv/bin/activate
