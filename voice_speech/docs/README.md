@@ -25,16 +25,13 @@ An intelligent, real-time voice communication module built for the RIVA-AGI.
 voice_speech/
 ├── docs/
 │   └── README.md              # Voice engine documentation & config guide
-├── engine/                    # Voice backend (Audio, Gemini Live, VAD, State)
-│   ├── audio/                 # Capture, playback, and device management
-│   ├── config/                # Settings & audio geometry
-│   ├── conversation/          # State manager & session controller
-│   └── gemini/                # Live API session, sender, and receiver
+├── engine/                    # Core configuration & settings
+│   └── config/                # Settings & configuration schemas
 ├── web/
 │   ├── index.html             # WebGL 3D interface & settings modal
 │   ├── app.js                 # Web Audio graph & WebSocket client
 │   └── worklet.js             # High-performance PCM16 resampler worklet
-├── web_server.py              # FastAPI WebRTC Gateway
+├── web_server.py              # FastAPI WebRTC Gateway & Live Bridge
 ├── run.sh                     # Voice gateway runner script
 ├── requirements.txt           # Voice module dependencies
 └── .env.example               # Environment configuration template
