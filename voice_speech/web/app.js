@@ -695,11 +695,11 @@ async function connect() {
 
     ws.onclose = (e) => {
       console.warn('WebSocket closed:', e);
+      // Circuit breaker: do NOT auto-reconnect in a fast loop
+      // Cleanly teardown audio graph and let the user restart or cooldown
+      disconnect();
       if (!isIntentionalDisconnect) {
-        statusLabel.innerText = 'Reconnecting...';
-        setTimeout(connect, 1000);
-      } else {
-        disconnect();
+        statusLabel.innerText = 'Disconnected (Click Start to reconnect)';
       }
     };
 
@@ -725,8 +725,15 @@ function handleServerEvent(msg) {
   } else if (msg.type === 'transcript') {
     if (msg.text) showTranscript(msg.text);
   } else if (msg.type === 'error') {
-    showToast(msg.message || 'AI service error');
+    isIntentionalDisconnect = true;
     disconnect();
+    const isQuota = (msg.message || '').toLowerCase().includes('quota') || (msg.message || '').toLowerCase().includes('exhausted');
+    if (isQuota) {
+      statusLabel.innerText = '⚠️ Quota limit reached (Wait ~60s cooldown)';
+      showToast('⚠️ Gemini API rate limit reached. Please wait ~60s before retrying.');
+    } else {
+      showToast(msg.message || 'AI service error');
+    }
   }
 }
 

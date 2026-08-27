@@ -4,10 +4,14 @@ Persistent, non-disconnecting bridge between browser WebRTC and Gemini Live API.
 """
 
 import asyncio
+import json
 import logging
 import os
 import sys
 import time
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
 from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
@@ -43,6 +47,65 @@ if not settings.gemini.api_key:
 
 # Pre-warmed Gemini client singleton
 genai_client = genai.Client(api_key=settings.gemini.api_key)
+
+
+async def fetch_news_summary(query: str) -> str:
+    """Fetches real-time news headlines via NewsAPI or live Google News RSS with strict ~300-char token capping."""
+    clean_query = query.strip()
+    news_api_key = os.getenv("NEWS_API_KEY", "").strip()
+    loop = asyncio.get_event_loop()
+
+    # 1. Option A: NewsAPI.org (if NEWS_API_KEY is configured in .env)
+    if news_api_key:
+        try:
+            encoded = urllib.parse.quote(clean_query)
+            url = f"https://newsapi.org/v2/everything?q={encoded}&pageSize=3&sortBy=publishedAt&apiKey={news_api_key}"
+            req = urllib.request.Request(url, headers={"User-Agent": "RivaVoice/1.0"})
+
+            def _fetch_newsapi():
+                with urllib.request.urlopen(req, timeout=3.5) as resp:
+                    return json.loads(resp.read().decode("utf-8"))
+
+            data = await loop.run_in_executor(None, _fetch_newsapi)
+            articles = data.get("articles", [])
+            headlines = [a["title"] for a in articles[:3] if a.get("title")]
+            if headlines:
+                summary = " | ".join(headlines)[:320]
+                logger.info(f"NewsAPI raw response for '{clean_query}': {summary!r}")
+                return summary
+        except Exception as e:
+            logger.warning(f"NewsAPI fetch failed ({e}), falling back to live News RSS...")
+
+    # 2. Option B: Live News RSS Feed (100% Free, Zero-Key, Real-Time Breaking News)
+    try:
+        encoded = urllib.parse.quote(clean_query)
+        url = f"https://news.google.com/rss/search?q={encoded}&hl=en-US&gl=US&ceid=US:en"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+
+        def _fetch_rss():
+            with urllib.request.urlopen(req, timeout=3.5) as resp:
+                return resp.read()
+
+        xml_data = await loop.run_in_executor(None, _fetch_rss)
+        root = ET.fromstring(xml_data)
+        items = root.findall(".//item")
+
+        headlines = []
+        for item in items[:3]:
+            title = item.find("title")
+            if title is not None and title.text:
+                clean_title = title.text.split(" - ")[0] if " - " in title.text else title.text
+                headlines.append(clean_title)
+
+        if headlines:
+            summary = " | ".join(headlines)[:320]
+            logger.info(f"Live News RSS response for '{clean_query}': {summary!r}")
+            return summary
+
+        return f"No recent breaking news found for '{clean_query}'."
+    except Exception as e:
+        logger.warning(f"News RSS fetch error for '{clean_query}': {e}")
+        return f"Could not retrieve recent news for '{clean_query}'."
 
 app = FastAPI(title="Riva WebRTC Gateway")
 
@@ -194,6 +257,18 @@ async def audio_websocket_endpoint(websocket: WebSocket):
         thinking_level = getattr(types.ThinkingLevel, settings.gemini.thinking_level, types.ThinkingLevel.LOW)
         thinking_config = types.ThinkingConfig(thinking_level=thinking_level)
 
+    news_tool = types.Tool(function_declarations=[
+        types.FunctionDeclaration(
+            name="get_latest_news",
+            description="Fetch a brief summary of current/recent news or facts on a topic. Only call this when the user explicitly asks about recent events, current data, or information that requires up-to-date knowledge beyond your training.",
+            parameters=types.Schema(
+                type="OBJECT",
+                properties={"query": types.Schema(type="STRING", description="Search query")},
+                required=["query"],
+            ),
+        )
+    ])
+
     resumption_handle: Optional[str] = None
 
     def build_connect_config() -> types.LiveConnectConfig:
@@ -201,6 +276,7 @@ async def audio_websocket_endpoint(websocket: WebSocket):
             response_modalities=settings.gemini.response_modalities,
             speech_config=speech_config,
             thinking_config=thinking_config,
+            tools=[news_tool],
             system_instruction=types.Content(
                 parts=[types.Part.from_text(text=instruction)]
             ),
@@ -303,7 +379,7 @@ async def audio_websocket_endpoint(websocket: WebSocket):
 
             async def gemini_to_browser():
                 """Receives Gemini Live audio and events across turns and interruptions."""
-                nonlocal current_epoch, session_active
+                nonlocal current_epoch, session_active, resumption_handle
                 while session_active:
                     try:
                         async for response in session.receive():
@@ -319,6 +395,29 @@ async def audio_websocket_endpoint(websocket: WebSocket):
                             go_away = getattr(response, "go_away", None)
                             if go_away:
                                 logger.warning(f"Received go_away from Gemini server (time left: {getattr(go_away, 'time_left', 'N/A')}).")
+
+                            # 0.1 Function / Tool Calling Dispatch
+                            tool_call = getattr(response, "tool_call", None)
+                            if tool_call and getattr(tool_call, "function_calls", None):
+                                for fc in tool_call.function_calls:
+                                    if fc.name == "get_latest_news":
+                                        query_arg = str((fc.args or {}).get("query", ""))
+                                        logger.info(f"Executing tool call '{fc.name}' (query: '{query_arg}')")
+                                        news_result = await fetch_news_summary(query_arg)
+                                        try:
+                                            logger.info(f"Sending tool response back to Gemini (id={fc.id})...")
+                                            await session.send_tool_response(
+                                                function_responses=[
+                                                    types.FunctionResponse(
+                                                        id=fc.id,
+                                                        name=fc.name,
+                                                        response={"result": news_result},
+                                                    )
+                                                ]
+                                            )
+                                            logger.info(f"Tool response delivered to Gemini for '{fc.name}'.")
+                                        except Exception as tool_err:
+                                            logger.error(f"Error delivering tool response: {tool_err}", exc_info=True)
 
                             server_content = response.server_content
                             if server_content is None:
@@ -347,6 +446,7 @@ async def audio_websocket_endpoint(websocket: WebSocket):
 
                             # 3. Turn Complete
                             if getattr(server_content, "turn_complete", False):
+                                logger.info("Gemini turn completed.")
                                 await safe_send_json({"type": "state", "state": "LISTENING"})
 
                     except asyncio.CancelledError:
