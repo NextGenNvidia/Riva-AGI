@@ -727,10 +727,10 @@ function handleServerEvent(msg) {
   } else if (msg.type === 'error') {
     isIntentionalDisconnect = true;
     disconnect();
-    const isQuota = (msg.message || '').toLowerCase().includes('quota') || (msg.message || '').toLowerCase().includes('exhausted');
+    const isQuota = (msg.message || '').toLowerCase().includes('quota') || (msg.message || '').toLowerCase().includes('exhausted') || (msg.message || '').toLowerCase().includes('cooldown');
     if (isQuota) {
-      statusLabel.innerText = '⚠️ Quota limit reached (Wait ~60s cooldown)';
-      showToast('⚠️ Gemini API rate limit reached. Please wait ~60s before retrying.');
+      statusLabel.innerText = '⚠️ Rate limit reached (Wait ~45s cooldown)';
+      showToast(msg.message || '⚠️ Gemini API rate limit reached. Please wait ~45s before retrying.');
     } else {
       showToast(msg.message || 'AI service error');
     }
