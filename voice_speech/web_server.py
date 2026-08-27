@@ -194,18 +194,29 @@ async def audio_websocket_endpoint(websocket: WebSocket):
         thinking_level = getattr(types.ThinkingLevel, settings.gemini.thinking_level, types.ThinkingLevel.LOW)
         thinking_config = types.ThinkingConfig(thinking_level=thinking_level)
 
-    connect_config = types.LiveConnectConfig(
-        response_modalities=settings.gemini.response_modalities,
-        speech_config=speech_config,
-        thinking_config=thinking_config,
-        system_instruction=types.Content(
-            parts=[types.Part.from_text(text=instruction)]
-        ),
-        realtime_input_config=types.RealtimeInputConfig(
-            automatic_activity_detection=vad_config
-        ),
-    )
+    resumption_handle: Optional[str] = None
 
+    def build_connect_config() -> types.LiveConnectConfig:
+        return types.LiveConnectConfig(
+            response_modalities=settings.gemini.response_modalities,
+            speech_config=speech_config,
+            thinking_config=thinking_config,
+            system_instruction=types.Content(
+                parts=[types.Part.from_text(text=instruction)]
+            ),
+            realtime_input_config=types.RealtimeInputConfig(
+                automatic_activity_detection=vad_config
+            ),
+            context_window_compression=types.ContextWindowCompressionConfig(
+                trigger_tokens=16000,
+                sliding_window=types.SlidingWindow(target_tokens=8000),
+            ),
+            session_resumption=types.SessionResumptionConfig(
+                handle=resumption_handle
+            ) if resumption_handle else None,
+        )
+
+    connect_config = build_connect_config()
     model_name = settings.gemini.model
     logger.info(f"Connecting to Gemini Live session (model={model_name}, voice={selected_voice}, lang={language})...")
 
@@ -298,6 +309,16 @@ async def audio_websocket_endpoint(websocket: WebSocket):
                         async for response in session.receive():
                             if not session_active:
                                 break
+
+                            # 0. Session Resumption Handle & Go-Away Signals
+                            resump = getattr(response, "session_resumption", None)
+                            if resump and getattr(resump, "handle", None):
+                                resumption_handle = resump.handle
+                                logger.debug(f"Saved session resumption handle: {resumption_handle[:16]}...")
+
+                            go_away = getattr(response, "go_away", None)
+                            if go_away:
+                                logger.warning(f"Received go_away from Gemini server (time left: {getattr(go_away, 'time_left', 'N/A')}).")
 
                             server_content = response.server_content
                             if server_content is None:
