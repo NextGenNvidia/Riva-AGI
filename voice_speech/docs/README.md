@@ -136,10 +136,13 @@ VAD_END_SENSITIVITY=END_SENSITIVITY_HIGH
 
 ---
 
-### 6. Server, Concurrency & Security
+### 6. Server, Concurrency & Circuit Breaker
 ```env
 # Maximum concurrent WebSocket sessions (default: 5)
 MAX_CONCURRENT_SESSIONS=5
+
+# Rate limit cooldown duration in seconds after 1011 quota exhaustion (default: 45)
+CIRCUIT_BREAKER_COOLDOWN_SEC=45
 
 # Server Port and Log Level
 PORT=8000
