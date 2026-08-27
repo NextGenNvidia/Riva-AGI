@@ -383,6 +383,8 @@ async def audio_websocket_endpoint(websocket: WebSocket):
                     logger.error(f"Gemini send error: {e}")
                     if "exhausted" in str(e).lower() or "1011" in str(e):
                         _last_quota_exhausted_time = time.time()
+                        session_active = False
+                        await safe_send_json({"type": "error", "message": "Gemini API Quota Exceeded. Please wait ~45s before retrying."})
                 break
 
     async def gemini_to_browser(session):
@@ -464,6 +466,8 @@ async def audio_websocket_endpoint(websocket: WebSocket):
                     logger.error(f"Gemini receive error: {e}")
                     if "exhausted" in str(e).lower() or "1011" in str(e):
                         _last_quota_exhausted_time = time.time()
+                        session_active = False
+                        await safe_send_json({"type": "error", "message": "Gemini API Quota Exceeded. Please wait ~45s before retrying."})
                 break
 
     reader_task = asyncio.create_task(ws_reader())
@@ -471,6 +475,13 @@ async def audio_websocket_endpoint(websocket: WebSocket):
     try:
         # Reconnect loop: seamlessly reconnects using resumption_handle if connection drops or on go_away
         while session_active:
+            # Check circuit breaker before each reconnect attempt
+            time_since_quota_drop = time.time() - _last_quota_exhausted_time
+            if time_since_quota_drop < CIRCUIT_BREAKER_COOLDOWN_SEC:
+                logger.warning("Active quota cooldown in progress. Aborting session loop.")
+                session_active = False
+                break
+
             connect_config = build_connect_config()
             is_resumed = bool(resumption_handle)
             logger.info(f"Connecting to Gemini Live session (model={model_name}, voice={selected_voice}, resumed={is_resumed})...")
@@ -497,7 +508,7 @@ async def audio_websocket_endpoint(websocket: WebSocket):
                 if "exhausted" in str(conn_err).lower() or "1011" in str(conn_err):
                     _last_quota_exhausted_time = time.time()
                     session_active = False
-                    await safe_send_json({"type": "error", "message": "Gemini API Quota Exceeded. Please wait before retrying."})
+                    await safe_send_json({"type": "error", "message": "Gemini API Quota Exceeded. Please wait ~45s before retrying."})
                     break
 
                 if resumption_handle and session_active:
@@ -506,6 +517,10 @@ async def audio_websocket_endpoint(websocket: WebSocket):
                 else:
                     logger.warning(f"Gemini connection error: {conn_err}")
                     break
+
+            if resumption_handle and session_active:
+                logger.info("Gemini session finished turn. Resuming session in 0.5s...")
+                await asyncio.sleep(0.5)
 
     except WebSocketDisconnect:
         logger.info("Browser client disconnected cleanly.")
