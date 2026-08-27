@@ -26,7 +26,9 @@ voice_speech/
 ├── docs/
 │   └── README.md              # Voice engine documentation & config guide
 ├── engine/                    # Core configuration & settings
-│   └── config/                # Settings & configuration schemas
+│   └── config/
+│       ├── settings.py        # System environment & VAD dataclasses
+│       └── prompts.py         # System instructions & multilingual persona prompts
 ├── web/
 │   ├── index.html             # WebGL 3D interface & settings modal
 │   ├── app.js                 # Web Audio graph & WebSocket client
