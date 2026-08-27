@@ -136,8 +136,22 @@ VAD_END_SENSITIVITY=END_SENSITIVITY_HIGH
 
 ---
 
-### 6. Logging & Server Port
+### 6. Server, Concurrency & Security
 ```env
+# Maximum concurrent WebSocket sessions (default: 5)
+MAX_CONCURRENT_SESSIONS=5
+
+# Server Port and Log Level
 PORT=8000
 LOG_LEVEL=INFO
+```
+
+---
+
+### 7. Optional Real-Time News Grounding
+RIVA includes built-in live news lookups using Google News RSS (zero key required). If you have a NewsAPI account, you can optionally provide your API key:
+
+```env
+# Optional NewsAPI.org key (falls back to Google News RSS automatically if empty)
+NEWS_API_KEY=your_news_api_key_here
 ```

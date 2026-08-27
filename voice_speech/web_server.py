@@ -117,6 +117,10 @@ MAX_CONCURRENT_SESSIONS = int(os.getenv("MAX_CONCURRENT_SESSIONS", "5"))
 _active_sessions = 0
 _session_lock = asyncio.Lock()
 
+# Server-side Circuit Breaker: fast-rejects connections during active rate limit cooldowns
+_last_quota_exhausted_time: float = 0.0
+CIRCUIT_BREAKER_COOLDOWN_SEC: float = 45.0
+
 
 @app.get("/")
 async def get_index():
@@ -141,7 +145,7 @@ async def get_favicon():
 
 @app.websocket("/ws")
 async def audio_websocket_endpoint(websocket: WebSocket):
-    global _active_sessions
+    global _active_sessions, _last_quota_exhausted_time
 
     # Origin validation — only allow localhost and same-origin connections
     origin = websocket.headers.get("origin", "")
@@ -149,6 +153,19 @@ async def audio_websocket_endpoint(websocket: WebSocket):
     if origin and origin not in allowed_origins:
         logger.warning(f"Rejected WebSocket from unauthorized origin: {origin}")
         await websocket.close(code=4003, reason="Origin not allowed")
+        return
+
+    # Circuit breaker check: reject immediately during active quota cooldown
+    time_since_quota_drop = time.time() - _last_quota_exhausted_time
+    if time_since_quota_drop < CIRCUIT_BREAKER_COOLDOWN_SEC:
+        remaining = int(CIRCUIT_BREAKER_COOLDOWN_SEC - time_since_quota_drop)
+        logger.warning(f"Rejected connection: Rate limit cooldown in progress ({remaining}s remaining).")
+        await websocket.accept()
+        await websocket.send_json({
+            "type": "error",
+            "message": f"Gemini API rate limit cooldown active. Please wait {remaining}s before retrying."
+        })
+        await websocket.close(code=4029)
         return
 
     # Enforce concurrent session cap
@@ -289,7 +306,7 @@ async def audio_websocket_endpoint(websocket: WebSocket):
             ),
             session_resumption=types.SessionResumptionConfig(
                 handle=resumption_handle
-            ) if resumption_handle else None,
+            ),
         )
 
     connect_config = build_connect_config()
@@ -373,6 +390,8 @@ async def audio_websocket_endpoint(websocket: WebSocket):
                         if session_active:
                             logger.error(f"Gemini send error (ending session): {e}")
                             session_active = False
+                            if "exhausted" in str(e).lower() or "1011" in str(e):
+                                _last_quota_exhausted_time = time.time()
                             err_msg = "Gemini API Quota Exceeded or Connection Dropped." if "exhausted" in str(e).lower() else "Connection to AI service lost."
                             await safe_send_json({"type": "error", "message": err_msg})
                         break
@@ -455,6 +474,8 @@ async def audio_websocket_endpoint(websocket: WebSocket):
                         if session_active:
                             logger.error(f"Gemini receive error (ending session): {e}")
                             session_active = False
+                            if "exhausted" in str(e).lower() or "1011" in str(e):
+                                _last_quota_exhausted_time = time.time()
                             err_msg = "Gemini API Quota Exceeded. Please check your API quota or wait a minute." if "exhausted" in str(e).lower() else "AI service connection error."
                             await safe_send_json({"type": "error", "message": err_msg})
                         break
