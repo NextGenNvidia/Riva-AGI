@@ -1,3 +1,3 @@
-from .settings import Settings, AudioInputConfig, AudioOutputConfig, VADConfig, GeminiLiveConfig
+from .settings import Settings, VADConfig, GeminiLiveConfig
 
-__all__ = ["Settings", "AudioInputConfig", "AudioOutputConfig", "VADConfig", "GeminiLiveConfig"]
+__all__ = ["Settings", "VADConfig", "GeminiLiveConfig"]
