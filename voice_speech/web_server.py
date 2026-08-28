@@ -1,129 +1,50 @@
 """
-Riva WebRTC Gateway Server (FastAPI + WebSocket).
-Persistent, non-disconnecting bridge between browser WebRTC and Gemini Live API.
+Riva WebSocket Voice Gateway Server (FastAPI + Web Audio Worklet).
+Clean, modular bridge routing between browser Web Audio and Gemini Live API.
 """
 
-import asyncio
-import json
 import logging
 import os
-import sys
-import time
-import urllib.parse
-import urllib.request
-import xml.etree.ElementTree as ET
-from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
-from google import genai
-from google.genai import types, errors
-import numpy as np
 
-try:
-    from voice_speech.engine.config.settings import Settings
-    from voice_speech.engine.config.prompts import get_system_instruction
-except ImportError:
-    try:
-        from .engine.config.settings import Settings
-        from .engine.config.prompts import get_system_instruction
-    except ImportError:
-        from engine.config.settings import Settings
-        from engine.config.prompts import get_system_instruction
+from voice_speech.engine.config.settings import Settings
+from voice_speech.engine.conversation.session_manager import SessionManager
+from voice_speech.engine.conversation.state import ConversationState
+from voice_speech.engine.gemini.session import create_gemini_client
+from voice_speech.engine.gemini.streaming import run_live_bridge
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("riva.web_server")
 
+# Load unified settings
 settings = Settings()
 
-# Validate API key at startup (fail fast with a helpful message)
+# Validate API key at startup (fail fast)
 if not settings.gemini.api_key:
     logger.error(
         "GEMINI_API_KEY is not set! "
         "Copy voice_speech/.env.example to .env and add your key from https://aistudio.google.com/app/apikey"
     )
-    sys.exit(1)
 
-# Pre-warmed Gemini client singleton
-genai_client = genai.Client(api_key=settings.gemini.api_key)
+# Shared Gemini Live Client and Concurrency / Rate Limiting Session Manager
+gemini_client = create_gemini_client(api_key=settings.gemini.api_key)
+session_manager = SessionManager()
 
-
-async def fetch_news_summary(query: str) -> str:
-    """Fetches real-time news headlines via NewsAPI or live Google News RSS with strict ~300-char token capping."""
-    clean_query = query.strip()
-    news_api_key = os.getenv("NEWS_API_KEY", "").strip()
-    loop = asyncio.get_event_loop()
-
-    # 1. Option A: NewsAPI.org (if NEWS_API_KEY is configured in .env)
-    if news_api_key:
-        try:
-            encoded = urllib.parse.quote(clean_query)
-            url = f"https://newsapi.org/v2/everything?q={encoded}&pageSize=3&sortBy=publishedAt&apiKey={news_api_key}"
-            req = urllib.request.Request(url, headers={"User-Agent": "RivaVoice/1.0"})
-
-            def _fetch_newsapi():
-                with urllib.request.urlopen(req, timeout=3.5) as resp:
-                    return json.loads(resp.read().decode("utf-8"))
-
-            data = await loop.run_in_executor(None, _fetch_newsapi)
-            articles = data.get("articles", [])
-            headlines = [a["title"] for a in articles[:3] if a.get("title")]
-            if headlines:
-                summary = " | ".join(headlines)[:320]
-                logger.info(f"NewsAPI raw response for '{clean_query}': {summary!r}")
-                return summary
-        except Exception as e:
-            logger.warning(f"NewsAPI fetch failed ({e}), falling back to live News RSS...")
-
-    # 2. Option B: Live News RSS Feed (100% Free, Zero-Key, Real-Time Breaking News)
-    try:
-        encoded = urllib.parse.quote(clean_query)
-        url = f"https://news.google.com/rss/search?q={encoded}&hl=en-US&gl=US&ceid=US:en"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-
-        def _fetch_rss():
-            with urllib.request.urlopen(req, timeout=3.5) as resp:
-                return resp.read()
-
-        xml_data = await loop.run_in_executor(None, _fetch_rss)
-        root = ET.fromstring(xml_data)
-        items = root.findall(".//item")
-
-        headlines = []
-        for item in items[:3]:
-            title = item.find("title")
-            if title is not None and title.text:
-                clean_title = title.text.split(" - ")[0] if " - " in title.text else title.text
-                headlines.append(clean_title)
-
-        if headlines:
-            summary = " | ".join(headlines)[:320]
-            logger.info(f"Live News RSS response for '{clean_query}': {summary!r}")
-            return summary
-
-        return f"No recent breaking news found for '{clean_query}'."
-    except Exception as e:
-        logger.warning(f"News RSS fetch error for '{clean_query}': {e}")
-        return f"Could not retrieve recent news for '{clean_query}'."
-
-app = FastAPI(title="Riva WebRTC Gateway")
+app = FastAPI(title="Riva Voice Gateway")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
 
-# Concurrent session limiter — prevents unbounded quota burn
-MAX_CONCURRENT_SESSIONS = int(os.getenv("MAX_CONCURRENT_SESSIONS", "5"))
-_active_sessions = 0
-_session_lock = asyncio.Lock()
 
-# Server-side Circuit Breaker: fast-rejects connections during active rate limit cooldowns
-_last_quota_exhausted_time: float = 0.0
-CIRCUIT_BREAKER_COOLDOWN_SEC: float = float(os.getenv("CIRCUIT_BREAKER_COOLDOWN_SEC", "45.0"))
-
+# ==============================================================================
+# Static Web UI Routes
+# ==============================================================================
 
 @app.get("/")
 async def get_index():
@@ -146,11 +67,13 @@ async def get_favicon():
     return Response(content=svg, media_type="image/svg+xml")
 
 
+# ==============================================================================
+# Real-Time Bidirectional Voice WebSocket Endpoint
+# ==============================================================================
+
 @app.websocket("/ws")
 async def audio_websocket_endpoint(websocket: WebSocket):
-    global _active_sessions, _last_quota_exhausted_time
-
-    # Origin validation — only allow localhost and same-origin connections
+    # 1. Origin validation (prevent unauthorized cross-origin WebSocket drain)
     origin = websocket.headers.get("origin", "")
     allowed_origins = {"http://localhost:8000", "http://localhost", "http://127.0.0.1:8000", "https://localhost:8000"}
     if origin and origin not in allowed_origins:
@@ -158,345 +81,49 @@ async def audio_websocket_endpoint(websocket: WebSocket):
         await websocket.close(code=4003, reason="Origin not allowed")
         return
 
-    # Circuit breaker check: reject immediately during active quota cooldown
-    time_since_quota_drop = time.time() - _last_quota_exhausted_time
-    if time_since_quota_drop < CIRCUIT_BREAKER_COOLDOWN_SEC:
-        remaining = int(CIRCUIT_BREAKER_COOLDOWN_SEC - time_since_quota_drop)
-        logger.warning(f"Rejected connection: Rate limit cooldown in progress ({remaining}s remaining).")
+    # 2. Concurrency & Circuit Breaker Admission
+    acquired, error_msg = await session_manager.try_acquire()
+    if not acquired:
         await websocket.accept()
-        await websocket.send_json({
-            "type": "error",
-            "message": f"Gemini API rate limit cooldown active. Please wait {remaining}s before retrying."
-        })
+        await websocket.send_json({"type": "error", "message": error_msg})
         await websocket.close(code=4029)
         return
-
-    # Enforce concurrent session cap
-    async with _session_lock:
-        if _active_sessions >= MAX_CONCURRENT_SESSIONS:
-            await websocket.accept()
-            await websocket.send_json({"type": "error", "message": f"Server at capacity ({MAX_CONCURRENT_SESSIONS} sessions). Try again later."})
-            await websocket.close(code=4029)
-            return
-        _active_sessions += 1
 
     try:
         await websocket.accept()
     except Exception:
-        async with _session_lock:
-            _active_sessions -= 1
+        await session_manager.release()
         return
 
-    # Read voice and language directly from query parameters
     voice = websocket.query_params.get("voice") or "Aoede"
     language = websocket.query_params.get("language") or "auto"
-    logger.info(f"Browser WebRTC client connected to /ws (voice={voice}, language={language}) [{_active_sessions}/{MAX_CONCURRENT_SESSIONS} sessions]")
-
-    client = genai_client
-    mic_queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=30)
-    current_epoch = 0
-    ws_lock = asyncio.Lock()
-    session_active = True
-
-    # Dynamic Voice Selection
-    valid_voices = {"Aoede", "Kore", "Puck", "Charon", "Fenrir"}
-    selected_voice = voice if voice in valid_voices else settings.gemini.voice_name
-
-    # Dynamic System Instruction with Unified Voice Architecture
-    instruction = get_system_instruction(language)
-
-    # Configure Gemini Live Session
-    vad_config = types.AutomaticActivityDetection(
-        disabled=settings.vad.disabled,
-        start_of_speech_sensitivity=getattr(
-            types.StartSensitivity,
-            settings.vad.start_sensitivity,
-            types.StartSensitivity.START_SENSITIVITY_LOW,
-        ),
-        end_of_speech_sensitivity=getattr(
-            types.EndSensitivity,
-            settings.vad.end_sensitivity,
-            types.EndSensitivity.END_SENSITIVITY_HIGH,
-        ),
-        prefix_padding_ms=settings.vad.prefix_padding_ms,
-        silence_duration_ms=settings.vad.silence_duration_ms,
+    logger.info(
+        f"Browser client connected to /ws (voice={voice}, language={language}) "
+        f"[{session_manager.active_sessions}/{session_manager.max_concurrent_sessions} sessions]"
     )
 
-    speech_config = types.SpeechConfig(
-        voice_config=types.VoiceConfig(
-            prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                voice_name=selected_voice
-            )
-        )
-    )
-
-    # Thinking config: None for instantaneous zero-latency voice generation
-    thinking_config = None
-    if settings.gemini.thinking_level.upper() in ("HIGH", "MEDIUM"):
-        thinking_level = getattr(types.ThinkingLevel, settings.gemini.thinking_level, types.ThinkingLevel.LOW)
-        thinking_config = types.ThinkingConfig(thinking_level=thinking_level)
-
-    news_tool = types.Tool(function_declarations=[
-        types.FunctionDeclaration(
-            name="get_latest_news",
-            description="Fetch a brief summary of current/recent news or facts on a topic. Only call this when the user explicitly asks about recent events, current data, or information that requires up-to-date knowledge beyond your training.",
-            parameters=types.Schema(
-                type="OBJECT",
-                properties={"query": types.Schema(type="STRING", description="Search query")},
-                required=["query"],
-            ),
-        )
-    ])
-
-    resumption_handle: Optional[str] = None
-
-    def build_connect_config() -> types.LiveConnectConfig:
-        return types.LiveConnectConfig(
-            response_modalities=settings.gemini.response_modalities,
-            speech_config=speech_config,
-            thinking_config=thinking_config,
-            tools=[news_tool],
-            system_instruction=types.Content(
-                parts=[types.Part.from_text(text=instruction)]
-            ),
-            realtime_input_config=types.RealtimeInputConfig(
-                automatic_activity_detection=vad_config
-            ),
-            context_window_compression=types.ContextWindowCompressionConfig(
-                trigger_tokens=16000,
-                sliding_window=types.SlidingWindow(target_tokens=8000),
-            ),
-            session_resumption=types.SessionResumptionConfig(
-                handle=resumption_handle
-            ),
-        )
-
-    model_name = settings.gemini.model
-
-    async def safe_send_json(data: dict):
-        if not session_active:
-            return
-        async with ws_lock:
-            try:
-                await websocket.send_json(data)
-            except Exception:
-                pass
-
-    async def safe_send_bytes(data: bytes):
-        if not session_active:
-            return
-        async with ws_lock:
-            try:
-                await websocket.send_bytes(data)
-            except Exception:
-                pass
-
-    async def ws_reader():
-        """Continuously drains binary PCM16 chunks from the browser WebSocket."""
-        nonlocal session_active
-        try:
-            while session_active:
-                msg = await websocket.receive()
-                if msg.get("type") == "websocket.disconnect":
-                    break
-                pcm_bytes = msg.get("bytes")
-                if not pcm_bytes:
-                    continue
-                if mic_queue.full():
-                    try:
-                        mic_queue.get_nowait()
-                    except asyncio.QueueEmpty:
-                        pass
-                mic_queue.put_nowait(pcm_bytes)
-        except (WebSocketDisconnect, asyncio.CancelledError):
-            pass
-        except Exception as e:
-            logger.debug(f"ws_reader ended: {e}")
-        finally:
-            session_active = False
-
-    async def mic_to_gemini(session):
-        """Transmits microphone audio chunks to the active Gemini Live session."""
-        nonlocal session_active
-        mime_type = "audio/pcm;rate=16000"
-        while session_active:
-            try:
-                try:
-                    pcm_bytes = await asyncio.wait_for(mic_queue.get(), timeout=0.1)
-                except asyncio.TimeoutError:
-                    continue
-
-                chunks = [pcm_bytes]
-                while not mic_queue.empty():
-                    try:
-                        chunks.append(mic_queue.get_nowait())
-                    except asyncio.QueueEmpty:
-                        break
-
-                combined = b"".join(chunks)
-                blob = types.Blob(data=combined, mime_type=mime_type)
-                await session.send_realtime_input(audio=blob)
-                for _ in chunks:
-                    mic_queue.task_done()
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                if session_active:
-                    logger.error(f"Gemini send error: {e}")
-                    if "exhausted" in str(e).lower() or "1011" in str(e):
-                        _last_quota_exhausted_time = time.time()
-                        session_active = False
-                        await safe_send_json({"type": "error", "message": "Gemini API Quota Exceeded. Please wait ~45s before retrying."})
-                break
-
-    async def gemini_to_browser(session):
-        """Receives audio and events from the active Gemini Live session and sends to browser."""
-        nonlocal current_epoch, session_active, resumption_handle
-        while session_active:
-            try:
-                async for response in session.receive():
-                    if not session_active:
-                        break
-
-                    # 0. Session Resumption Handle & Go-Away Signals
-                    resump = getattr(response, "session_resumption", None)
-                    if resump and getattr(resump, "handle", None):
-                        resumption_handle = resump.handle
-                        logger.debug(f"Saved session resumption handle: {resumption_handle[:16]}...")
-
-                    go_away = getattr(response, "go_away", None)
-                    if go_away:
-                        logger.warning(f"Received go_away from Gemini server (time left: {getattr(go_away, 'time_left', 'N/A')}). Resuming...")
-                        return  # Exit receive loop cleanly so outer loop reconnects with resumption_handle
-
-                    # 0.1 Function / Tool Calling Dispatch
-                    tool_call = getattr(response, "tool_call", None)
-                    if tool_call and getattr(tool_call, "function_calls", None):
-                        for fc in tool_call.function_calls:
-                            if fc.name == "get_latest_news":
-                                query_arg = str((fc.args or {}).get("query", ""))
-                                logger.info(f"Executing tool call '{fc.name}' (query: '{query_arg}')")
-                                news_result = await fetch_news_summary(query_arg)
-                                try:
-                                    logger.info(f"Sending tool response back to Gemini (id={fc.id})...")
-                                    await session.send_tool_response(
-                                        function_responses=[
-                                            types.FunctionResponse(
-                                                id=fc.id,
-                                                name=fc.name,
-                                                response={"result": news_result},
-                                            )
-                                        ]
-                                    )
-                                    logger.info(f"Tool response delivered to Gemini for '{fc.name}'.")
-                                except Exception as tool_err:
-                                    logger.error(f"Error delivering tool response: {tool_err}", exc_info=True)
-
-                    server_content = response.server_content
-                    if server_content is None:
-                        continue
-
-                    # 1. Server-Side Barge-In Interruption
-                    if getattr(server_content, "interrupted", False):
-                        current_epoch += 1
-                        logger.info(f"Barge-in triggered by Gemini! Epoch advanced to {current_epoch}.")
-                        await safe_send_json({
-                            "type": "barge_in",
-                            "epoch": current_epoch,
-                            "state": "LISTENING"
-                        })
-                        continue
-
-                    # 2. Incoming Model Audio Chunks
-                    model_turn = server_content.model_turn
-                    if model_turn:
-                        for part in model_turn.parts:
-                            if part.inline_data and part.inline_data.data:
-                                epoch_header = current_epoch.to_bytes(4, byteorder="big")
-                                await safe_send_bytes(epoch_header + part.inline_data.data)
-                                await safe_send_json({"type": "state", "state": "PLAYING"})
-
-                    # 3. Turn Complete
-                    if getattr(server_content, "turn_complete", False):
-                        logger.info("Gemini turn completed.")
-                        await safe_send_json({"type": "state", "state": "LISTENING"})
-
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                if session_active:
-                    logger.error(f"Gemini receive error: {e}")
-                    if "exhausted" in str(e).lower() or "1011" in str(e):
-                        _last_quota_exhausted_time = time.time()
-                        session_active = False
-                        await safe_send_json({"type": "error", "message": "Gemini API Quota Exceeded. Please wait ~45s before retrying."})
-                break
-
-    reader_task = asyncio.create_task(ws_reader())
+    state = ConversationState()
 
     try:
-        # Reconnect loop: seamlessly reconnects using resumption_handle if connection drops or on go_away
-        while session_active:
-            # Check circuit breaker before each reconnect attempt
-            time_since_quota_drop = time.time() - _last_quota_exhausted_time
-            if time_since_quota_drop < CIRCUIT_BREAKER_COOLDOWN_SEC:
-                logger.warning("Active quota cooldown in progress. Aborting session loop.")
-                session_active = False
-                break
-
-            connect_config = build_connect_config()
-            is_resumed = bool(resumption_handle)
-            logger.info(f"Connecting to Gemini Live session (model={model_name}, voice={selected_voice}, resumed={is_resumed})...")
-
-            try:
-                async with client.aio.live.connect(model=model_name, config=connect_config) as session:
-                    logger.info("Connected to Gemini Live session successfully!")
-                    await safe_send_json({"type": "state", "state": "LISTENING"})
-
-                    mic_task = asyncio.create_task(mic_to_gemini(session))
-                    gemini_task = asyncio.create_task(gemini_to_browser(session))
-
-                    done, pending = await asyncio.wait(
-                        [mic_task, gemini_task],
-                        return_when=asyncio.FIRST_COMPLETED
-                    )
-                    for t in pending:
-                        t.cancel()
-                    await asyncio.gather(*pending, return_exceptions=True)
-
-            except Exception as conn_err:
-                if not session_active:
-                    break
-                if "exhausted" in str(conn_err).lower() or "1011" in str(conn_err):
-                    _last_quota_exhausted_time = time.time()
-                    session_active = False
-                    await safe_send_json({"type": "error", "message": "Gemini API Quota Exceeded. Please wait ~45s before retrying."})
-                    break
-
-                if resumption_handle and session_active:
-                    logger.info(f"Gemini session ended. Resuming session seamlessly in 0.5s...")
-                    await asyncio.sleep(0.5)
-                else:
-                    logger.warning(f"Gemini connection error: {conn_err}")
-                    break
-
-            if resumption_handle and session_active:
-                logger.info("Gemini session finished turn. Resuming session in 0.5s...")
-                await asyncio.sleep(0.5)
-
+        await run_live_bridge(
+            client=gemini_client,
+            websocket=websocket,
+            settings=settings,
+            state=state,
+            session_mgr=session_manager,
+            voice=voice,
+            language=language,
+        )
     except WebSocketDisconnect:
         logger.info("Browser client disconnected cleanly.")
     except Exception as e:
-        logger.error(f"WebSocket session exception: {e}", exc_info=True)
+        logger.error(f"WebSocket bridge exception: {e}", exc_info=True)
     finally:
-        session_active = False
-        reader_task.cancel()
-        await asyncio.gather(reader_task, return_exceptions=True)
-        async with _session_lock:
-            _active_sessions = max(0, _active_sessions - 1)
-        logger.info(f"Session released [{_active_sessions}/{MAX_CONCURRENT_SESSIONS} sessions]")
+        state.terminate()
+        await session_manager.release()
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("voice_speech.web_server:app", host="0.0.0.0", port=8000, log_level="info")
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("voice_speech.web_server:app", host="0.0.0.0", port=port, log_level="info")

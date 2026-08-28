@@ -25,15 +25,28 @@ An intelligent, real-time voice communication module built for the RIVA-AGI.
 voice_speech/
 ├── docs/
 │   └── README.md              # Voice engine documentation & config guide
-├── engine/                    # Core configuration & settings
-│   └── config/
-│       ├── settings.py        # System environment & VAD dataclasses
-│       └── prompts.py         # System instructions & multilingual persona prompts
+├── engine/                    # Core engine architecture
+│   ├── config/
+│   │   ├── settings.py        # System environment & VAD dataclasses
+│   │   └── prompts.py         # System instructions & multilingual persona prompts
+│   ├── conversation/
+│   │   ├── state.py           # Per-session ConversationState dataclass
+│   │   └── session_manager.py # Concurrency limiter & circuit-breaker manager
+│   └── gemini/
+│       ├── tools.py           # Real-time news tools & dispatch registry
+│       ├── session.py         # Gemini Live LiveConnectConfig builder
+│       └── streaming.py       # Audio streaming loops & bidirectional live bridge
+├── tests/                     # Automated unit test suite
+│   ├── test_tools.py          # News tool & registry tests
+│   ├── test_session_manager.py# Concurrency & circuit breaker tests
+│   ├── test_session.py        # Gemini Live connection config tests
+│   ├── test_prompts.py        # Multilingual prompt tests
+│   └── test_state.py          # Session state tests
 ├── web/
 │   ├── index.html             # WebGL 3D interface & settings modal
 │   ├── app.js                 # Web Audio graph & WebSocket client
 │   └── worklet.js             # High-performance PCM16 resampler worklet
-├── web_server.py              # FastAPI WebRTC Gateway & Live Bridge
+├── web_server.py              # Lightweight FastAPI WebSocket Voice Gateway (~100 lines)
 ├── run.sh                     # Voice gateway runner script
 ├── requirements.txt           # Voice module dependencies
 └── .env.example               # Environment configuration template
@@ -54,7 +67,12 @@ cp voice_speech/.env.example .env
 pip install -r voice_speech/requirements.txt
 ```
 
-### 3. Launch Voice Interface
+### 3. Run Automated Tests
+```bash
+pytest voice_speech/tests/ -v
+```
+
+### 4. Launch Voice Interface
 ```bash
 ./voice_speech/run.sh
 ```
