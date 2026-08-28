@@ -1,5 +1,6 @@
 """Unit tests for Gemini Live Function Calling Tools & Registry."""
 
+from unittest.mock import MagicMock, patch
 import pytest
 from voice_speech.engine.gemini.tools import (
     dispatch_tool_call,
@@ -17,9 +18,30 @@ def test_tool_declaration():
 
 @pytest.mark.anyio
 async def test_dispatch_registered_tool():
-    result = await dispatch_tool_call("get_latest_news", {"query": "artificial intelligence"})
-    assert isinstance(result, str)
-    assert len(result) > 0
+    with patch("voice_speech.engine.gemini.tools.fetch_news_summary") as mock_fetch:
+        mock_fetch.return_value = "Mocked Headline 1 | Mocked Headline 2"
+        result = await dispatch_tool_call("get_latest_news", {"query": "artificial intelligence"})
+        assert result == "Mocked Headline 1 | Mocked Headline 2"
+        mock_fetch.assert_called_once_with("artificial intelligence")
+
+
+@pytest.mark.anyio
+async def test_fetch_news_summary_rss_mock():
+    sample_rss = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0"><channel>
+        <item><title>AI Breakthrough Announced - TechNews</title></item>
+        <item><title>Global Summit Begins - WorldNews</title></item>
+    </channel></rss>"""
+
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = sample_rss
+    mock_resp.__enter__.return_value = mock_resp
+    mock_resp.__exit__.return_value = None
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        summary = await fetch_news_summary("tech")
+        assert "AI Breakthrough Announced" in summary
+        assert "Global Summit Begins" in summary
 
 
 @pytest.mark.anyio

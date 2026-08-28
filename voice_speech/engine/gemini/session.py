@@ -16,7 +16,11 @@ VALID_VOICES = {"Aoede", "Kore", "Puck", "Charon", "Fenrir"}
 
 
 def create_gemini_client(api_key: str) -> genai.Client:
-    """Creates an asynchronous Gemini Live client using the v1alpha API."""
+    """Creates an asynchronous Gemini Live client.
+    
+    Pins api_version to 'v1alpha', which is required by Google GenAI SDK for Gemini Live
+    bidirectional streaming WebSockets, context compression, and session resumption handles.
+    """
     return genai.Client(api_key=api_key, http_options={"api_version": "v1alpha"})
 
 

@@ -5,6 +5,7 @@ Clean, modular bridge routing between browser Web Audio and Gemini Live API.
 
 import logging
 import os
+import sys
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
 
@@ -31,6 +32,7 @@ if not settings.gemini.api_key:
         "GEMINI_API_KEY is not set! "
         "Copy voice_speech/.env.example to .env and add your key from https://aistudio.google.com/app/apikey"
     )
+    sys.exit(1)
 
 # Shared Gemini Live Client and Concurrency / Rate Limiting Session Manager
 gemini_client = create_gemini_client(api_key=settings.gemini.api_key)
@@ -42,10 +44,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
 
 
-# ==============================================================================
 # Static Web UI Routes
-# ==============================================================================
-
 @app.get("/")
 async def get_index():
     return FileResponse(os.path.join(WEB_DIR, "index.html"))
@@ -67,10 +66,7 @@ async def get_favicon():
     return Response(content=svg, media_type="image/svg+xml")
 
 
-# ==============================================================================
 # Real-Time Bidirectional Voice WebSocket Endpoint
-# ==============================================================================
-
 @app.websocket("/ws")
 async def audio_websocket_endpoint(websocket: WebSocket):
     # 1. Origin validation (prevent unauthorized cross-origin WebSocket drain)
