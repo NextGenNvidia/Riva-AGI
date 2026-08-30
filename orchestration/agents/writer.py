@@ -7,31 +7,26 @@ from orchestration.orchestrator.llm import call_gemini
 
 logger = logging.getLogger(__name__)
 
-
-@registry.register("coder", AgentCapabilities(description="Handles coding and software development tasks.", tools=["write_code"], agent_level="TASK_DOER"))
-def coder_agent(task_data: InputData) -> AgentResponse:
-    logger.info("Routing to Coder Agent")
-    
-    # Simulate execution time
+@registry.register("writer", AgentCapabilities(description="Writes and formats content.", tools=["write"], agent_level="TASK_DOER"))
+def writer_agent(task_data: InputData) -> AgentResponse:
+    logger.info("Routing to Writer Agent")
     start_time = time.time()
     
-    # Assign and fetch the API key dynamically based on its exact role
-    my_key = key_manager.get_api_key_for_role("CODER")
+    my_key = key_manager.get_api_key_for_role("WRITER")
     # System instruction tailored for this agent
-    sys_prompt = f"You are the coder agent. Your job is to fulfill the user's request expertly."
+    sys_prompt = f"You are the writer agent. Your job is to fulfill the user's request expertly."
     
     # Call the GenAI LLM
     content = call_gemini(
         prompt=task_data.text_content, 
         api_key=my_key, 
         system_instruction=sys_prompt, 
-        agent_id="coder"
+        agent_id="writer"
     )
-    
     execution_time = (time.time() - start_time) * 1000
     
     return AgentResponse(
-        agent_id="coder",
+        agent_id="writer",
         status=ResponseStatus.SUCCESS,
         content=content,
         tool_calls=[],
