@@ -8,24 +8,30 @@ from orchestration.orchestrator.llm import call_gemini
 logger = logging.getLogger(__name__)
 
 
-@registry.register("researcher", AgentCapabilities(description="Handles internet research and data gathering.", tools=["search_web"], agent_level="TASK_DOER"))
+from orchestration.tools import tool_registry
+
+@registry.register("researcher", AgentCapabilities(description="Handles internet research and data gathering.", tools=["web_search", "fetch_url_content", "read_file"], agent_level="TASK_DOER"))
 def researcher_agent(task_data: InputData) -> AgentResponse:
     logger.info("Routing to Researcher Agent")
     
-    # Simulate execution time
     start_time = time.time()
     
-    # Assign and fetch the API key dynamically based on its exact role
     my_key = key_manager.get_api_key_for_role("RESEARCHER")
-    # System instruction tailored for this agent
-    sys_prompt = f"You are the researcher agent. Your job is to fulfill the user's request expertly."
+    researcher_tools = tool_registry.get_tools_by_names(["web_search", "fetch_url_content", "read_file"])
     
-    # Call the GenAI LLM
-    content = call_gemini(
+    sys_prompt = (
+        "You are the expert Researcher Agent in an AGI system. "
+        "You have access to live web search (`web_search`) and webpage fetching (`fetch_url_content`) tools. "
+        "Use `web_search` to query the web. Once you obtain search results, synthesize the findings and write a detailed, high-quality, structured summary answering the user's request with references."
+    )
+    
+    content, tool_calls = call_gemini(
         prompt=task_data.text_content, 
         api_key=my_key, 
         system_instruction=sys_prompt, 
-        agent_id="researcher"
+        agent_id="researcher",
+        tools=researcher_tools,
+        return_tool_calls=True
     )
     
     execution_time = (time.time() - start_time) * 1000
@@ -34,7 +40,7 @@ def researcher_agent(task_data: InputData) -> AgentResponse:
         agent_id="researcher",
         status=ResponseStatus.SUCCESS,
         content=content,
-        tool_calls=[],
+        tool_calls=tool_calls,
         execution_time_ms=execution_time,
-        metadata={"processed_modality": task_data.input_type.value}
+        metadata={"processed_modality": task_data.input_type.value, "tools_count": len(tool_calls)}
     )

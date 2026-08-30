@@ -269,6 +269,7 @@ def run_orchestrator(
     task_id: str = None,
     session_id: str = "session-001",
     source: str = "cli",
+    on_step_progress = None,
 ) -> dict:
 
     try:
@@ -292,26 +293,34 @@ def run_orchestrator(
             metadata={"source": source}
         )
 
-        result = app.invoke(
-            {
-                "task_payload": input_data,
-                "agent": "fallback",
-                "response_payload": None,
-                "task_id": task_id,
-                "session_id": session_id,
-                "source": source,
-                "complexity": "simple",
-                "routing_decision": "fallback",
-                "plan": [],
-                "current_step": 0,
-                "completed_steps": [],
-                "feedback": "",
-                "intent": "unknown",
-                "confidence": 0.0,
-            }
-        )
+        initial_state = {
+            "task_payload": input_data,
+            "agent": "fallback",
+            "response_payload": None,
+            "task_id": task_id,
+            "session_id": session_id,
+            "source": source,
+            "complexity": "simple",
+            "routing_decision": "fallback",
+            "plan": [],
+            "current_step": 0,
+            "completed_steps": [],
+            "feedback": "",
+            "intent": "unknown",
+            "confidence": 0.0,
+        }
 
-        return result
+        final_state = dict(initial_state)
+        for chunk in app.stream(initial_state, stream_mode="updates"):
+            for node_name, node_update in chunk.items():
+                final_state.update(node_update)
+                if on_step_progress:
+                    try:
+                        on_step_progress(node_name, node_update, final_state)
+                    except Exception as cb_err:
+                        logger.warning(f"Error in on_step_progress callback: {cb_err}")
+
+        return final_state
 
     except Exception:
         logger.exception(

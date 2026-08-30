@@ -20,7 +20,7 @@ class KeyManager:
         E.g., "CODER" -> GEMINI_API_KEY_CODER
         """
         env_var_name = f"GEMINI_API_KEY_{role.upper()}"
-        return os.getenv(env_var_name, "")
+        return os.getenv(env_var_name) or os.getenv("GEMINI_API_KEY", "")
 
 # Singleton instance to be used by the Orchestrator/Agent Factory
 key_manager = KeyManager()
