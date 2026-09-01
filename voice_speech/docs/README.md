@@ -251,8 +251,7 @@ voice_speech/
 ├── web_server.py              # FastAPI WebSocket gateway
 ├── run.sh                     # Runner script
 ├── requirements.txt           # Python dependencies
-├── .env.example               # Environment template
-└── .gitignore                 # Repository ignore rules
+└── .env.example               # Environment template
 ```
 
 ---
