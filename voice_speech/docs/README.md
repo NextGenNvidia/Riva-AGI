@@ -1,5 +1,8 @@
 # RIVA — Real-Time Voice Communication Engine
 
+**Owner:** Ankit Kumar Singh  
+**Date:** 2026-08-23  
+
 An intelligent, real-time bidirectional voice communication engine built for RIVA-AGI, bridging browser Web Audio with Google Gemini Live API for low-latency conversational AI.
 
 ---
@@ -28,14 +31,12 @@ An intelligent, real-time bidirectional voice communication engine built for RIV
 
 ## Quick Start
 
+> **Note:** All commands below assume your current working directory is `voice_speech/`. If you are in the project root, run `cd voice_speech` first.
+
 ### Step 1 — Configure Environment
 Copy the example configuration file:
 ```bash
-# If inside voice_speech/:
 cp .env.example .env
-
-# If in parent project root:
-cp voice_speech/.env.example .env
 ```
 Add your Gemini API key in `.env`:
 ```env
@@ -49,16 +50,12 @@ GEMINI_API_KEY=your_actual_gemini_api_key_here
 #### Option A: Automated Runner Script (Recommended)
 The runner script initializes the virtual environment, syncs dependencies, and launches the server:
 ```bash
-# From inside voice_speech/:
 ./run.sh
-
-# Or from project root:
-./voice_speech/run.sh
 ```
 
 #### Option B: Manual Setup
 ```bash
-# 1. Create and activate a virtual environment (inside voice_speech/)
+# 1. Create and activate a virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
 
@@ -190,7 +187,7 @@ Gemini synthesizes natural voice response with live grounding
 ### Running the Test Suite
 ```bash
 # Activate virtual environment
-source ../.venv/bin/activate  # or source .venv/bin/activate
+source .venv/bin/activate
 
 # Run all test suites
 pytest tests/ -v
