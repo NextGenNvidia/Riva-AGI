@@ -1,0 +1,102 @@
+[
+  {
+    "id": "raj_ojha",
+    "title": "Raj Ojha - Core Lead & AI Systems Architect",
+    "keywords": ["raj", "ojha", "raj ojha", "lead", "architect", "creator", "member", "kiet"],
+    "summary": "Raj Ojha is a core lead, AI researcher, and systems architect at NextGen SuperComputing Club, KIET.",
+    "content": "Raj Ojha is a core lead, AI researcher, and systems architect at the NextGen SuperComputing Club at KIET Group of Institutions. He is one of the key minds behind the club's computing initiatives and the Riva multimodal voice assistant platform. His expertise includes High-Performance Computing (HPC), distributed multi-agent systems, low-latency voice-to-voice streaming, and GPU-accelerated computing. Raj is actively involved in researching autonomous AI workflows, digital human avatars with real-time lip-sync, and supercomputing architectures."
+  },
+  {
+    "id": "nextgen_club",
+    "title": "NextGen SuperComputing Club",
+    "keywords": ["nextgen", "supercomputing", "club", "kiet", "community", "college"],
+    "summary": "NextGen SuperComputing Club is the advanced HPC & AI research club at KIET.",
+    "content": "NextGen SuperComputing Club is an advanced research and engineering student community at KIET Group of Institutions, Ghaziabad. The club focuses on high-performance computing, distributed supercomputing clusters, deep learning, agentic AI systems, and next-generation Nvidia architectures. They are the creators of the Riva Voice and Riva AGI platforms."
+  },
+  {
+    "id": "riva_project",
+    "title": "Riva Multimodal Real-Time Assistant",
+    "keywords": ["riva", "voice", "speech", "avatar", "assistant", "system", "project"],
+    "summary": "Riva is an intelligent real-time conversational voice assistant with a 3D digital human avatar.",
+    "content": "Riva is a real-time multimodal conversational voice assistant featuring bidirectional WebRTC/WebSocket audio streaming, low-latency Gemini Live integration, a 3D digital human avatar with real-time phoneme lip-syncing, and an autonomous multi-agent orchestration backend."
+  },
+  {
+    "id": "chirag_tejasvi",
+    "title": "Chirag Tejasvi - AI Engineer & NextGen Supercomputing Member",
+    "keywords": [
+      "chirag",
+      "tejasvi",
+      "chirag tejasvi",
+      "innogeeks",
+      "nextgen",
+      "supercomputing",
+      "kiet",
+      "muktiverse",
+      "riva-agi",
+      "muktiversaio",
+      "jalert",
+      "skillbridgeai",
+      "housefind",
+      "agraan ai",
+      "multi-agent",
+      "rag",
+      "fastapi"
+    ],
+    "summary": "Chirag Tejasvi is a 2nd year B.Tech CSE (AI/ML) student at KIET, ML Coordinator at InnoGeeks, and technical/PR contributor at NextGen Supercomputing working on Multi-Agent Orchestration and Riva.",
+    "content": "TYPE: PERSON\n\nName: Chirag Tejasvi\nAcademic Year: Second Year\nProgram/Branch: B.Tech CSE (Artificial Intelligence & Machine Learning)\nSection: B\nClub/Organization: InnoGeeks; NextGen Supercomputing\n\n[ABOUT]\nA Computer Science undergraduate specializing in Artificial Intelligence and Machine Learning. Passionate about technology, AI/ML, problem-solving, and building practical AI systems.\n\n[INTERESTS]\nGenerative AI, LLMs, Multi-Agent Systems, AI engineering, web development, coding, problem-solving, photography, travelling, badminton, and exploring new technologies.\n\n[SKILLS]\nPython, Java, C, C++, Machine Learning, Generative AI, LLMs, RAG, Multi-Agent Systems, FastAPI, web development, SQL, and AI system design.\n\n[EXPERIENCE]\nML Coordinator at InnoGeeks. Technical and PR role at NextGen Supercomputing. Participated in a social internship focused on teaching AI concepts to Classes I–V using simple real-life examples and activity-based learning. This developed communication, leadership, classroom management, public speaking, creativity, logical thinking, and social responsibility.\n\n[PROJECTS]\n- MuktiVerse: An AI orchestration framework focused on coordinating LLM workers, agents, tools, memory, RAG, knowledge graphs, model routing, and multimodal workflows.\n- Riva-AGI: An Artificial Cognitive Intelligence project aiming to evolve AI beyond a simple chatbot toward a Jarvis-like cognitive system.\n- MuktiVersAIO: An autonomous intelligence orchestration system involving planners, agents, tools, model routing, RAG, memory, and workflow orchestration.\n- jALERT: A FastAPI-based AI system involving agents, mapping, chatbot/voice interaction, and administration.\n- SkillBridgeAI: An AI-focused project for skills and learning.\n- HouseFind: A machine-learning-based property prediction/recommendation project.\n- Agraan AI: Work related to AI-based weather nowcasting and a geospatial command-center concept.\n\n[CURRENTLY]\nWorking on AI systems involving Multi-Agent Orchestration, LLM workflows, RAG, tool calling, model routing, and autonomous AI architectures. Contributing to Riva as part of the college club.\n\n[LEARNING]\nFastAPI, DSA, Java, Machine Learning, Deep Learning, Generative AI, LLMs, RAG, Multi-Agent Systems, React, DBMS, Cloud Foundations, and AI system design.\n\n[GOALS]\nBecome a strong AI engineer and build advanced AI systems involving Generative AI, LLMs, RAG, and Multi-Agent Systems. Long-term goal is to build impactful AI technology and eventually create an AI company.\n\n[COLLABORATION]\nInterested in collaborating on AI/ML projects, Generative AI, LLM applications, RAG systems, Multi-Agent Systems, AI orchestration, and practical AI engineering."
+  },
+  {
+    "id": "ayush_pathak",
+    "title": "Ayush Pathak - AI/ML & IoT Embedded Systems Engineer",
+    "keywords": [
+      "ayush",
+      "pathak",
+      "ayush pathak",
+      "iot",
+      "robotics",
+      "embedded",
+      "arduino",
+      "esp32",
+      "esp8266",
+      "esp32-cam",
+      "modular car",
+      "rc car",
+      "bis certification checker",
+      "study space",
+      "e-yantra",
+      "pacbot",
+      "coppeliasim",
+      "kiet"
+    ],
+    "summary": "Ayush Pathak is a 2nd year B.Tech CSE (AI/ML) student at KIET specializing in AI/ML, IoT, robotics, embedded systems, and hardware-software integration.",
+    "content": "TYPE: PERSON\n\nName: Ayush Pathak\nAcademic Year: 2nd year\nProgram/Branch: B.Tech in Computer Science and Engineering (AI/ML)\nSection: B\n\n[ABOUT]\nAyush is a B.Tech CSE AI/ML student interested in software development, artificial intelligence, machine learning, IoT, and hardware-software integration.\n\n[INTERESTS]\n- Artificial Intelligence and Machine Learning\n- Data Structures and Algorithms\n- IoT and embedded systems\n- Robotics and hardware-software integration\n- Web development\n- Hackathons and technical projects\n\n[SKILLS]\n- C/C++\n- Python fundamentals\n- HTML, CSS, JavaScript\n- Data Structures and Algorithms\n- Machine Learning fundamentals\n- NumPy and scikit-learn\n- Arduino and ESP32 development\n- ESP8266 and ESP32-CAM\n- Sensors and embedded systems\n- GitHub\n- Arduino IDE and PlatformIO\n\n[EXPERIENCE]\n- Developed embedded and IoT projects using Arduino, ESP8266, ESP32, sensors, displays, motors, and wireless communication.\n- Worked on hackathon-oriented projects involving robotics, IoT, web interfaces, and AI/ML concepts.\n- Worked with machine learning workflows including data preprocessing, categorical encoding, linear regression, decision trees, GridSearchCV, and model prediction.\n\n[PROJECTS]\n- Modular Car: ESP32-controlled four-wheel robotic car with ultrasonic sensing, phone-based camera feed, OLED/LCD display, and interchangeable ambulance, weather, and robotic-arm modules.\n- RC Car: ESP32-based Wi-Fi-controlled car using an L298N motor driver and a web-based remote interface.\n- Smart Energy Management System.\n- Smart Student Management System.\n- Arduino Dice Roller.\n- BIS Certification Checker: Hackathon project focused on an AI-powered assistant for Indian Standards and BIS services using RAG concepts.\n- Study Space: Planned educational website with topics, thumbnails, notes PDFs, Q&A, upvoting, AJAX, and SPA-style interaction.\n\n[CURRENTLY]\n- Working on e-Yantra E-YRC PacBot tasks.\n- Working with Ubuntu 22.04, Python, CoppeliaSim, and robotics simulation.\n- Preparing for machine learning coursework and numerical/coding assessments.\n- Building knowledge and projects around AI/ML, software development, and robotics.\n\n[LEARNING]\n- Data Structures and Algorithms in C++\n- Machine Learning\n- Python and NumPy\n- Web development\n- IoT and embedded systems\n- RAG systems and AI assistants\n\n[GOALS]\n- Build strong DSA and software development skills.\n- Develop practical AI/ML expertise.\n- Build a strong technical portfolio.\n- Secure a placement at a FANG-level technology company by the end of the fourth year.\n\n[COLLABORATION]\nInterested in technical collaboration, particularly with people who have complementary skills in software, AI/ML, IoT, embedded systems, robotics, and web development."
+  },
+  {
+    "id": "ankit_singh_tomar",
+    "title": "Ankit Singh Tomar - Full-Stack Developer & NextGen AI/ML Member",
+    "keywords": [
+      "ankit",
+      "tomar",
+      "ankit singh tomar",
+      "ankit tomar",
+      "noteboat",
+      "ieee",
+      "nextgen",
+      "supercomputing",
+      "gssoc",
+      "booksture",
+      "obsidian brain",
+      "jandhan",
+      "climora",
+      "sharex",
+      "skillsync",
+      "riyaaz",
+      "paysentinel_x",
+      "emora",
+      "credilens",
+      "kiet"
+    ],
+    "summary": "Ankit Singh Tomar is a 2nd year B.Tech CSE (AI/ML) student at KIET, Content Lead at Noteboat, IEEE Newsletter Head, and AI/ML domain member of NextGen Supercomputing Club.",
+    "content": "TYPE: PERSON\n\nName: Ankit Singh Tomar\nAcademic Year: 2nd Year, 3rd Semester\nProgram/Branch: B.Tech, Computer Science and Engineering (AI/AI&ML)\nSection: A\nClub/Organization: KIET Group of Institutions; NextGen Supercomputing Club; IEEE, KIET Group of Institutions; Noteboat\n\n[ABOUT]\nAnkit Singh Tomar is a B.Tech CSE (AI/AI&ML) student interested in AI/ML, full-stack development, open source, real-world projects, and student-focused technology products. He enjoys hands-on development, team collaboration, and building practical applications.\n\n[INTERESTS]\nAI/ML, full-stack development, backend development, frontend development, open source, hackathons, startup/product building, student-focused products, AI agents, and collaborative technical projects.\n\n[SKILLS]\nPython, HTML, CSS, JavaScript, NumPy, pandas, Streamlit, FastAPI, MySQL, PostgreSQL, Git, GitHub, Next.js, Tailwind CSS, Gemini API, Docker, Vercel, Railway, API development, database design, AI integration, dashboards, data visualization, documentation, research, and problem-solving.\n\n[EXPERIENCE]\nContent Lead at Noteboat, a student-focused platform. Works on content, product communication, team coordination, and startup-related activities. Newsletter and Report Head at IEEE, KIET Group of Institutions. AI/ML domain member of the NextGen Supercomputing Club, working with NVIDIA DGX A100-class supercomputing resources for projects. GSSoC 2026 contributor in the AI/Agents track, with multiple merged pull requests and a global rank of 261.\n\n[PROJECTS]\n- Obsidian Brain: Knowledge-graph application built with HTML, CSS, and JavaScript.\n- Riyaaz AI: AI-focused project.\n- PaySentinel_X: AI/security-focused project.\n- EMORA: AI-focused project.\n- Credilens: AI-focused project.\n- SkillSync AI: Python and Streamlit-based resume analyzer.\n- Climora AI: Climate digital-twin project for BAH 2026 PS5, involving backend, AI/data, and frontend/UI/UX work.\n- ShareX: Campus resource-sharing application for college students using college email-based access.\n- Booksture: PDF-to-illustrated book reader using Next.js 14, Tailwind CSS, React PDF, FastAPI, Gemini 2.5 Flash, FLUX Schnell via Replicate, Pollinations fallback, pdfplumber, PyPDF2, and Supabase.\n- JanDhan Analytics AI: AI-powered dashboard for government expenditure transparency and intelligent financial analytics, developed during the Ek-Prayass Social Internship.\n- NextGen Test Portal: Test scheduling platform with separate user frontend, admin panel, backend, MCQ/coding tests, and test-case execution.\n\n[CURRENTLY]\nCurrently working on full-stack Python development, AI/ML projects, open-source contributions, student-focused products, and projects through the NextGen Supercomputing Club. Also contributes to IEEE and Noteboat activities.\n\n[LEARNING]\nCurrently learning and strengthening Python development, FastAPI/Django, full-stack development, machine learning, artificial intelligence, AI agents, databases, and backend engineering.\n\n[GOALS]\nBuild strong career-ready development and AI/ML skills, secure a paid internship, contribute to GSoC 2027, explore freelancing, and continue building practical real-world projects.\n\n[COLLABORATION]\nInterested in collaborating on AI/ML, full-stack, open-source, hackathon, startup, and student-focused technology projects."
+  }
+]

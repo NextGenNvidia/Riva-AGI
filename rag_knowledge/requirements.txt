@@ -1,0 +1,10 @@
+# rag_knowledge Requirements
+# Core functionality uses Python 3.10+ standard library (urllib, json, asyncio, re, logging)
+# Zero external runtime dependencies required for core functionality!
+
+# Optional: Environment variable loading for standalone usage
+python-dotenv>=1.0.0
+
+# Development and Testing Dependencies
+pytest>=7.4.0
+anyio>=4.0.0
