@@ -4,7 +4,7 @@ A modular, zero-dependency, self-contained Retrieval-Augmented Generation (RAG) 
 
 ---
 
-## 🌟 Highlights
+## Highlights
 
 - **Completely Self-Contained**: Can be run, tested, and imported independently or merged with other systems without impacting other directories.
 - **Zero Heavy Runtime Dependencies**: Built entirely with Python standard library (`urllib.request`, `json`, `asyncio`, `re`, `logging`). No mandatory external SDKs.
@@ -14,7 +14,7 @@ A modular, zero-dependency, self-contained Retrieval-Augmented Generation (RAG) 
 
 ---
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```text
 rag_knowledge/
@@ -40,7 +40,7 @@ rag_knowledge/
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Standalone CLI Usage
 
@@ -75,7 +75,7 @@ asyncio.run(main())
 
 ---
 
-## ⚙️ Configuration & Environment Variables
+## Configuration & Environment Variables
 
 Add these to your `.env` file or environment (all are optional):
 
@@ -86,7 +86,7 @@ Add these to your `.env` file or environment (all are optional):
 
 ---
 
-## 📝 Adding or Modifying Knowledge
+## Adding or Modifying Knowledge
 
 Edit [`rag_knowledge/data/knowledge.json`](./data/knowledge.json). Each entry follows this simple format:
 
@@ -106,7 +106,7 @@ Changes take effect immediately on next query.
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 The test suite is fully isolated under `rag_knowledge/tests/`:
 
