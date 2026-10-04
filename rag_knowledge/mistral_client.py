@@ -4,11 +4,11 @@ Uses Mistral's Chat Completion API to synthesize conversational, voice-optimized
 responses based on retrieved context.
 """
 
+import asyncio
 import json
 import logging
 import os
 import urllib.request
-import asyncio
 from typing import Optional
 
 logger = logging.getLogger("rag.mistral")
@@ -24,10 +24,10 @@ class MistralRAGClient:
         self,
         api_key: Optional[str] = None,
         model: Optional[str] = None,
-        timeout: float = 6.0,
+        timeout: float = 4.0,
     ):
-        self.api_key = api_key or os.getenv("MISTRAL_API_KEY", "").strip()
-        self.model = model or os.getenv("MISTRAL_MODEL", DEFAULT_MISTRAL_MODEL)
+        self.api_key = api_key if api_key is not None else os.getenv("MISTRAL_API_KEY", "").strip()
+        self.model = model if model is not None else os.getenv("MISTRAL_MODEL", DEFAULT_MISTRAL_MODEL)
         self.timeout = timeout
 
     @property
@@ -45,7 +45,6 @@ class MistralRAGClient:
         Returns:
             Synthesized response text, or None if key is missing or call fails.
         """
-        # Read API key dynamically to catch any runtime additions to environment
         api_key = self.api_key or os.getenv("MISTRAL_API_KEY", "").strip()
         if not api_key:
             logger.info("MISTRAL_API_KEY is not set. Using retrieved context directly.")
@@ -53,14 +52,15 @@ class MistralRAGClient:
 
         system_prompt = (
             "You are Riva's voice knowledge assistant. Answer the user's question directly, warmly, "
-            "and concisely using the provided reference context. "
-            "Keep the answer to 2-3 natural sentences suitable for spoken voice conversation."
+            "and concisely using ONLY the provided reference context in <context>. "
+            "If the context does not contain enough information to answer the question, state that you do not have that information. "
+            "Do not fabricate facts. Keep the answer to 2-3 natural sentences suitable for spoken conversation."
         )
 
         user_content = (
-            f"REFERENCE CONTEXT:\n{context}\n\n"
-            f"USER QUESTION: {query}\n\n"
-            f"Please provide a concise, spoken answer based on the reference context."
+            f"<context>\n{context}\n</context>\n\n"
+            f"<user_question>\n{query}\n</user_question>\n\n"
+            f"Please provide a concise, spoken answer based strictly on the reference context."
         )
 
         payload = {
@@ -70,7 +70,7 @@ class MistralRAGClient:
                 {"role": "user", "content": user_content},
             ],
             "max_tokens": 180,
-            "temperature": 0.4,
+            "temperature": 0.3,
         }
 
         headers = {

@@ -97,3 +97,41 @@ def test_custom_data_file():
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+
+def test_dynamic_mtime_reloading():
+    with tempfile.NamedTemporaryFile("w+", suffix=".json", delete=False, encoding="utf-8") as tmp:
+        initial_data = [{"id": "doc1", "title": "Doc One", "keywords": ["doc1"], "summary": "s1", "content": "c1"}]
+        json.dump(initial_data, tmp)
+        tmp_path = tmp.name
+
+    try:
+        retriever = KnowledgeRetriever(data_file=tmp_path)
+        assert len(retriever.documents) == 1
+
+        # Simulate on-disk file update
+        import time
+        time.sleep(0.05)  # Ensure distinct filesystem mtime
+        updated_data = [
+            {"id": "doc1", "title": "Doc One", "keywords": ["doc1"], "summary": "s1", "content": "c1"},
+            {"id": "doc2", "title": "Doc Two", "keywords": ["doc2"], "summary": "s2", "content": "c2"},
+        ]
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(updated_data, f)
+
+        # Calling retrieve() should detect mtime change and reload
+        results = retriever.retrieve("doc2", top_k=1)
+        assert len(retriever.documents) == 2
+        assert len(results) == 1
+        assert results[0]["id"] == "doc2"
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def test_min_score_threshold():
+    retriever = KnowledgeRetriever()
+    # A single common word with no keyword/title matches should fall below min_score
+    results = retriever.retrieve("the", top_k=5, min_score=100.0)
+    assert len(results) == 0
+

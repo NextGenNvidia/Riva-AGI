@@ -28,6 +28,7 @@ class KnowledgeRetriever:
     def __init__(self, data_file: Optional[str] = None):
         self.data_file = data_file or os.getenv("KNOWLEDGE_DATA_PATH", "").strip() or DEFAULT_JSON
         self.documents: List[Dict[str, Any]] = []
+        self._last_mtime: float = 0.0
         self.load_data()
 
     def load_data(self) -> None:
@@ -35,9 +36,11 @@ class KnowledgeRetriever:
         if not os.path.exists(self.data_file):
             logger.warning(f"Knowledge data file not found: {self.data_file}")
             self.documents = []
+            self._last_mtime = 0.0
             return
 
         try:
+            self._last_mtime = os.path.getmtime(self.data_file)
             with open(self.data_file, "r", encoding="utf-8") as f:
                 self.documents = json.load(f)
             logger.info(f"Loaded {len(self.documents)} knowledge documents from {self.data_file}")
@@ -45,17 +48,23 @@ class KnowledgeRetriever:
             logger.error(f"Error loading knowledge data: {e}", exc_info=True)
             self.documents = []
 
-    def retrieve(self, query: str, top_k: int = 2) -> List[Dict[str, Any]]:
+    def retrieve(self, query: str, top_k: int = 2, min_score: float = 3.0) -> List[Dict[str, Any]]:
         """Scores and retrieves top_k relevant documents for the given query.
 
         Args:
             query: The user query string (e.g. 'do you know about Raj Ojha?').
             top_k: Maximum number of relevant documents to return.
+            min_score: Minimum relevance score required to be considered a match.
 
         Returns:
             List of matching document dicts with 'score' and 'matched_keywords'.
         """
-        if not self.documents:
+        # Auto-reload if file changed on disk so edits take effect immediately
+        if os.path.exists(self.data_file):
+            current_mtime = os.path.getmtime(self.data_file)
+            if current_mtime != self._last_mtime:
+                self.load_data()
+        elif not self.documents:
             self.load_data()
 
         query_lower = query.lower().strip()
@@ -66,7 +75,7 @@ class KnowledgeRetriever:
             score = 0.0
             matched_kw = []
 
-            # 1. Direct substring match on document title or keywords
+            # 1. Direct substring match on document title
             doc_title_lower = doc.get("title", "").lower()
             if any(term in query_lower for term in doc_title_lower.split(" - ")[0].split()):
                 score += 5.0
@@ -86,7 +95,7 @@ class KnowledgeRetriever:
             overlap = query_tokens.intersection(content_tokens)
             score += len(overlap) * 1.5
 
-            if score > 0:
+            if score >= min_score:
                 scored_docs.append({
                     "id": doc.get("id"),
                     "title": doc.get("title"),

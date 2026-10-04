@@ -18,22 +18,15 @@ import sys
 if __package__ is None or __package__ == "":
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Attempt to load .env if available
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
-
-from rag_knowledge.retriever import KnowledgeRetriever
-from rag_knowledge.service import query_rag, get_rag_service
+from rag_knowledge.service import get_rag_service, query_rag
 
 
 def list_knowledge_entries():
-    """Prints all registered knowledge entries."""
-    retriever = KnowledgeRetriever()
-    print(f"\n--- Registered Knowledge Documents ({len(retriever.documents)}) ---")
-    for doc in retriever.documents:
+    """Prints all registered knowledge entries using the shared service retriever."""
+    service = get_rag_service()
+    docs = service.retriever.documents
+    print(f"\n--- Registered Knowledge Documents ({len(docs)}) ---")
+    for doc in docs:
         print(f" * [{doc.get('id')}] {doc.get('title')}")
         print(f"   Keywords: {', '.join(doc.get('keywords', []))}")
         print(f"   Summary:  {doc.get('summary')}")
@@ -44,14 +37,16 @@ async def run_query(query: str, verbose: bool = False):
     """Executes a query against the RAG service and prints results."""
     service = get_rag_service()
     if verbose:
-        retriever = service.retriever
-        matches = retriever.retrieve(query, top_k=3)
+        matches = service.retriever.retrieve(query, top_k=2)
         print(f"\n[Retrieval Matches for '{query}']:")
-        for idx, m in enumerate(matches, 1):
-            print(f"  {idx}. {m.get('title')} (score={m.get('score')})")
+        if matches:
+            for idx, m in enumerate(matches, 1):
+                print(f"  {idx}. {m.get('title')} (score={m.get('score')})")
+        else:
+            print("  (No documents met the relevance threshold)")
 
     print(f"\n[Query]: {query}")
-    answer = await query_rag(query)
+    answer = await service.query(query)
     print(f"\n[Answer]:\n{answer}\n")
 
 
@@ -63,7 +58,7 @@ def main():
         "query",
         nargs="?",
         default=None,
-        help="Search query or question (e.g. 'Do you know about Raj Ojha?')",
+        help="Search query or question",
     )
     parser.add_argument(
         "--list",

@@ -7,10 +7,12 @@ A modular, zero-dependency, self-contained Retrieval-Augmented Generation (RAG) 
 ## Highlights
 
 - **Completely Self-Contained**: Can be run, tested, and imported independently or merged with other systems without impacting other directories.
-- **Zero Heavy Runtime Dependencies**: Built entirely with Python standard library (`urllib.request`, `json`, `asyncio`, `re`, `logging`). No mandatory external SDKs.
-- **Mistral API Synthesis**: Uses Mistral Chat Completion (`mistral-small-latest` by default) to generate natural, conversational 2–3 sentence spoken answers.
-- **Resilient Fallback**: If `MISTRAL_API_KEY` is omitted or API is unavailable, it immediately returns the factual grounded text directly so conversational pipelines never fail.
-- **Customizable Knowledge Base**: Knowledge is stored in a clean JSON format in [`data/knowledge.json`](./data/knowledge.json), making it easy to add or edit facts about people, teams, and projects.
+- **Zero Heavy Runtime Dependencies**: Core retrieval and Mistral synthesis run entirely on the Python 3.10+ standard library (`urllib.request`, `json`, `asyncio`, `re`, `logging`). No external SDKs required for runtime.
+- **Auto `.env` Discovery**: Automatically detects and loads `.env` from package or workspace roots on import.
+- **Dynamic File Reloading**: Automatically detects on-disk modifications to `data/knowledge.json` via file timestamps, allowing updates to take effect immediately in long-running processes without server restarts.
+- **Mistral API Synthesis**: Uses Mistral Chat Completion (`mistral-small-latest` by default) with strict grounding prompts to generate concise, 2–3 sentence spoken answers.
+- **Resilient Fallback**: If `MISTRAL_API_KEY` is omitted, rate-limited, or unavailable, it immediately returns the factual grounded text directly so conversational pipelines never fail.
+- **Customizable Knowledge Base**: Knowledge is stored in a clean JSON format in [`data/knowledge.json`](./data/knowledge.json), designed for easy migration to vector databases in the future.
 
 ---
 
