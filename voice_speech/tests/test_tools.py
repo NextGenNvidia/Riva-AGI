@@ -45,6 +45,29 @@ async def test_fetch_news_summary_rss_mock():
 
 
 @pytest.mark.anyio
+async def test_fetch_news_summary_tavily_mock(monkeypatch):
+    import json
+    monkeypatch.setenv("TAVILY_API_KEY", "tvly-test-key")
+
+    fake_tavily = {
+        "answer": "Quantum computing reached a new milestone today.",
+        "results": [
+            {"title": "Quantum Leap Announced", "content": "Scientists demonstrated 1000 qubit fault tolerance."}
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(fake_tavily).encode("utf-8")
+    mock_resp.__enter__.return_value = mock_resp
+    mock_resp.__exit__.return_value = None
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        summary = await fetch_news_summary("quantum computing")
+        assert "Quantum computing reached a new milestone" in summary
+        assert "1000 qubit fault tolerance" in summary
+
+
+
+@pytest.mark.anyio
 async def test_dispatch_unsupported_tool():
     result = await dispatch_tool_call("non_existent_tool", {})
     assert "not supported" in result

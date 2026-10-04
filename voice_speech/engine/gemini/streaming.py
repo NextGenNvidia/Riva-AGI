@@ -6,7 +6,7 @@ barge-in interruption tracking, tool call execution, and automated session resum
 
 import asyncio
 import logging
-from typing import Optional
+from typing import Optional, Any
 from fastapi import WebSocket, WebSocketDisconnect
 from google.genai import types
 
@@ -76,7 +76,7 @@ async def mic_to_gemini(
         except Exception as e:
             if state.session_active:
                 logger.error(f"Gemini mic transmit error: {e}")
-                if "exhausted" in str(e).lower() or "1011" in str(e):
+                if _is_quota_error(e):
                     session_mgr.trip_circuit_breaker()
                     state.terminate()
                     await state.safe_send_json(
@@ -84,6 +84,12 @@ async def mic_to_gemini(
                         {"type": "error", "message": f"Gemini API Quota Exceeded. Please wait ~{int(session_mgr.cooldown_seconds)}s before retrying."}
                     )
             break
+
+
+def _is_quota_error(err: Any) -> bool:
+    """Returns True only for genuine upstream quota exhaustion or rate limits."""
+    s = str(err).lower()
+    return "quota" in s or "resource_exhausted" in s or "429" in s
 
 
 async def gemini_to_browser(
@@ -100,10 +106,12 @@ async def gemini_to_browser(
                     break
 
                 # 0. Session Resumption Handle & Go-Away Signals
-                resump = getattr(response, "session_resumption", None)
-                if resump and getattr(resump, "handle", None):
-                    state.resumption_handle = resump.handle
-                    logger.debug(f"Saved session resumption handle: {state.resumption_handle[:16]}...")
+                resump = getattr(response, "session_resumption_update", None) or getattr(response, "session_resumption", None)
+                if resump:
+                    handle = getattr(resump, "new_handle", None) or getattr(resump, "handle", None)
+                    if handle:
+                        state.resumption_handle = handle
+                        logger.debug(f"Saved session resumption handle: {state.resumption_handle[:16]}...")
 
                 go_away = getattr(response, "go_away", None)
                 if go_away:
@@ -160,7 +168,7 @@ async def gemini_to_browser(
         except Exception as e:
             if state.session_active:
                 logger.error(f"Gemini receive error: {e}")
-                if "exhausted" in str(e).lower() or "1011" in str(e):
+                if _is_quota_error(e):
                     session_mgr.trip_circuit_breaker()
                     state.terminate()
                     await state.safe_send_json(
@@ -220,7 +228,7 @@ async def run_live_bridge(
             except Exception as conn_err:
                 if not state.session_active:
                     break
-                if "exhausted" in str(conn_err).lower() or "1011" in str(conn_err):
+                if _is_quota_error(conn_err):
                     session_mgr.trip_circuit_breaker()
                     state.terminate()
                     await state.safe_send_json(
@@ -229,12 +237,10 @@ async def run_live_bridge(
                     )
                     break
 
-                if state.resumption_handle and state.session_active:
-                    logger.info("Gemini session ended. Resuming session seamlessly in 0.5s...")
+                if state.session_active:
+                    logger.warning(f"Gemini connection interrupted: {conn_err}. Reconnecting in 0.5s...")
                     await asyncio.sleep(0.5)
-                else:
-                    logger.warning(f"Gemini connection error: {conn_err}")
-                    break
+
 
             if state.resumption_handle and state.session_active:
                 logger.info("Gemini session finished turn. Resuming session in 0.5s...")

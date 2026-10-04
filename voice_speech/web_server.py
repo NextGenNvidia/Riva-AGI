@@ -6,6 +6,13 @@ Clean, modular bridge routing between browser Web Audio and Gemini Live API.
 import logging
 import os
 import sys
+from pathlib import Path
+
+# Ensure parent directory is in sys.path for voice_speech package imports
+_pkg_root = str(Path(__file__).resolve().parent.parent)
+if _pkg_root not in sys.path:
+    sys.path.insert(0, _pkg_root)
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
 
