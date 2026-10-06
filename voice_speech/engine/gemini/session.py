@@ -86,6 +86,12 @@ def build_connect_config(
     thinking_config = build_thinking_config(settings.gemini.thinking_level)
     active_tools = tools if tools is not None else DEFAULT_TOOLS
 
+    session_resumption = (
+        types.SessionResumptionConfig(handle=resumption_handle)
+        if resumption_handle
+        else None
+    )
+
     return types.LiveConnectConfig(
         response_modalities=settings.gemini.response_modalities,
         speech_config=speech_config,
@@ -97,5 +103,5 @@ def build_connect_config(
             trigger_tokens=16000,
             sliding_window=types.SlidingWindow(target_tokens=8000),
         ),
-        session_resumption=types.SessionResumptionConfig(handle=resumption_handle),
+        session_resumption=session_resumption,
     )

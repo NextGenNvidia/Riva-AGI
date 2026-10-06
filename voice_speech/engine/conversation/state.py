@@ -14,9 +14,11 @@ from fastapi import WebSocket
 class ConversationState:
     """Encapsulates all mutable state for an individual active conversation session."""
     session_active: bool = True
+    is_tool_running: bool = False
     current_epoch: int = 0
     resumption_handle: Optional[str] = None
     mic_queue: asyncio.Queue = field(default_factory=lambda: asyncio.Queue(maxsize=30))
+    progress_queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     ws_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     def advance_epoch(self) -> int:

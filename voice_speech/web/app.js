@@ -724,6 +724,16 @@ function handleServerEvent(msg) {
     if (!isMuted) updateUIState(msg.state);
   } else if (msg.type === 'transcript') {
     if (msg.text) showTranscript(msg.text);
+  } else if (msg.type === 'action_card') {
+    handleActionCard(msg);
+  } else if (msg.type === 'open_url') {
+    if (msg.url) {
+      try {
+        window.open(msg.url, '_blank');
+      } catch (e) {
+        console.warn('[Riva] Browser window.open blocked:', e);
+      }
+    }
   } else if (msg.type === 'error') {
     isIntentionalDisconnect = true;
     disconnect();
@@ -736,6 +746,221 @@ function handleServerEvent(msg) {
     }
   }
 }
+
+// ─── LIVE ACTION CARD — Pure DOM Injection (No HTML/CSS files touched) ───────
+
+let _rivaActionCardEl = null;
+let _rivaCardDismissTimer = null;
+
+function _ensureActionCardStyles() {
+  if (document.getElementById('riva-action-card-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'riva-action-card-styles';
+  style.textContent = `
+    #riva-action-card {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 99999;
+      min-width: 320px;
+      max-width: 420px;
+      background: rgba(10, 10, 20, 0.82);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(120,100,255,0.12);
+      font-family: -apple-system, 'Inter', 'Segoe UI', sans-serif;
+      color: #e8e8f0;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: transform 0.32s cubic-bezier(.22,1,.36,1), opacity 0.28s ease;
+      pointer-events: auto;
+    }
+    #riva-action-card.visible {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    #riva-action-card .rac-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    #riva-action-card .rac-icon {
+      font-size: 22px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    #riva-action-card .rac-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #c8c0ff;
+      letter-spacing: 0.01em;
+      line-height: 1.3;
+    }
+    #riva-action-card .rac-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(180,160,255,0.25);
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: rac-spin 0.7s linear infinite;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    @keyframes rac-spin { to { transform: rotate(360deg); } }
+    #riva-action-card .rac-subject {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    #riva-action-card .rac-preview {
+      font-size: 12.5px;
+      color: rgba(230,225,255,0.75);
+      line-height: 1.5;
+      border-left: 2px solid rgba(167,139,250,0.45);
+      padding-left: 10px;
+      margin-top: 6px;
+      word-break: break-word;
+    }
+    #riva-action-card .rac-bar {
+      margin-top: 12px;
+      height: 2px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.07);
+      overflow: hidden;
+    }
+    #riva-action-card .rac-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #7c3aed, #a78bfa);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    #riva-action-card.status-done .rac-bar-fill { width: 100%; background: linear-gradient(90deg,#059669,#34d399); }
+    #riva-action-card.status-done .rac-title { color: #6ee7b7; }
+    #riva-action-card.status-done .rac-spinner { display: none; }
+  `;
+  document.head.appendChild(style);
+}
+
+function _escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function handleActionCard(msg) {
+  _ensureActionCardStyles();
+
+  // Create card element if not present
+  if (!_rivaActionCardEl) {
+    _rivaActionCardEl = document.createElement('div');
+    _rivaActionCardEl.id = 'riva-action-card';
+    document.body.appendChild(_rivaActionCardEl);
+  }
+
+  const card = _rivaActionCardEl;
+  const isDone = msg.status === 'done';
+
+  // Automatically attempt opening URL in browser tab on running state
+  if (msg.url && !isDone && !msg._hasOpened) {
+    msg._hasOpened = true;
+    try {
+      window.open(msg.url, '_blank');
+    } catch (e) {
+      console.warn('[Riva] Browser window.open popup blocked:', e);
+    }
+  }
+
+  // Clear existing dismiss timer if updating same card
+  if (_rivaCardDismissTimer) {
+    clearTimeout(_rivaCardDismissTimer);
+    _rivaCardDismissTimer = null;
+  }
+
+  // Build inner HTML
+  let inner = `
+    <div class="rac-header">
+      <span class="rac-icon">${msg.icon || '⚡'}</span>
+      <span class="rac-title">${msg.title || ''}</span>
+      ${!isDone ? '<span class="rac-spinner"></span>' : '<button onclick="if (_rivaActionCardEl) { _rivaActionCardEl.remove(); _rivaActionCardEl=null; }" style="background:none; border:none; color:rgba(255,255,255,0.45); font-size:14px; cursor:pointer; margin-left:auto; line-height:1; padding:2px 6px;" title="Close">✕</button>'}
+    </div>`;
+
+  if (msg.recipient) {
+    inner += `<div class="rac-subject" style="color:#a78bfa;">To: ${_escapeHtml(msg.recipient)}</div>`;
+  }
+  if (msg.subject) {
+    inner += `<div class="rac-subject">Subject: ${_escapeHtml(msg.subject)}</div>`;
+  }
+  if (msg.preview && !msg.result) {
+    inner += `<div class="rac-preview">${_escapeHtml(msg.preview)}</div>`;
+  }
+
+  // If rich DOM result is present, display scrollable inspection box
+  if (msg.result) {
+    inner += `
+      <div style="margin-top: 8px; max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.55); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.55; color: #e2e8f0; white-space: pre-wrap; word-break: break-word;">
+        ${_escapeHtml(msg.result)}
+      </div>`;
+  }
+
+  if (msg.url) {
+    card.style.cursor = 'pointer';
+    card.title = 'Click to open in browser';
+    card.onclick = (e) => {
+      if (e.target.tagName !== 'A' && e.target.tagName !== 'BUTTON') {
+        window.open(msg.url, '_blank');
+      }
+    };
+    let displayHost = msg.url;
+    try {
+      const u = new URL(msg.url);
+      displayHost = u.hostname + (u.pathname.length > 1 ? u.pathname : '');
+    } catch (_) {}
+    inner += `
+      <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="font-size: 11px; color: rgba(255,255,255,0.45); font-family: 'JetBrains Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">${_escapeHtml(displayHost)}</span>
+        <a href="${msg.url}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; background: linear-gradient(90deg, #10b981, #059669); border: 1px solid rgba(52,211,153,0.6); border-radius: 8px; color: #ffffff; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; box-shadow: 0 2px 10px rgba(16,185,129,0.35); flex-shrink: 0;">
+          ↗ Open Tab
+        </a>
+      </div>`;
+  } else {
+    card.style.cursor = 'default';
+    card.title = '';
+    card.onclick = null;
+  }
+
+  inner += `<div class="rac-bar"><div class="rac-bar-fill" id="rac-fill"></div></div>`;
+
+  card.innerHTML = inner;
+  card.className = isDone ? 'visible status-done' : 'visible';
+
+  // Animate progress bar on running state
+  if (!isDone) {
+    setTimeout(() => {
+      const fill = document.getElementById('rac-fill');
+      if (fill) fill.style.width = '65%';
+    }, 80);
+  }
+
+  // Auto-dismiss after done (extended for rich DOM cards so user can inspect)
+  if (isDone) {
+    const dismissDelay = msg.result ? 35000 : (msg.url ? 8000 : 4500);
+    _rivaCardDismissTimer = setTimeout(() => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(16px)';
+      setTimeout(() => {
+        if (card.parentNode) card.parentNode.removeChild(card);
+        _rivaActionCardEl = null;
+      }, 400);
+    }, dismissDelay);
+  }
+}
+
+
 
 function handleIncomingAudio(arrayBuffer) {
   if (!outputAudioCtx || arrayBuffer.byteLength < 4) return;

@@ -51,20 +51,27 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
 
 
+NO_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
+
 # Static Web UI Routes
 @app.get("/")
 async def get_index():
-    return FileResponse(os.path.join(WEB_DIR, "index.html"))
+    return FileResponse(os.path.join(WEB_DIR, "index.html"), headers=NO_CACHE_HEADERS)
 
 
 @app.get("/app.js")
 async def get_app_js():
-    return FileResponse(os.path.join(WEB_DIR, "app.js"))
+    return FileResponse(os.path.join(WEB_DIR, "app.js"), headers=NO_CACHE_HEADERS)
 
 
 @app.get("/worklet.js")
 async def get_worklet_js():
-    return FileResponse(os.path.join(WEB_DIR, "worklet.js"))
+    return FileResponse(os.path.join(WEB_DIR, "worklet.js"), headers=NO_CACHE_HEADERS)
 
 
 @app.get("/favicon.ico")
