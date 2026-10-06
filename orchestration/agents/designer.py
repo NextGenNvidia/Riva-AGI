@@ -12,9 +12,9 @@ def designer_agent(task_data: InputData) -> AgentResponse:
     logger.info("Routing to Designer Agent")
     start_time = time.time()
     
-    my_key = key_manager.get_api_key_for_role("WORKER_5")
+    my_key = key_manager.get_api_key_for_role("DESIGNER")
     # System instruction tailored for this agent
-    sys_prompt = f"You are the designer agent. Your job is to fulfill the user's request expertly."
+    sys_prompt = "You are the UI/UX Designer Agent. Your goal is to design intuitive interfaces, cohesive user flows, and aesthetic design mockups based on user requirements."
     
     # Call the GenAI LLM
     content = call_gemini(

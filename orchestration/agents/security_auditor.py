@@ -12,9 +12,9 @@ def security_auditor_agent(task_data: InputData) -> AgentResponse:
     logger.info("Routing to Security Auditor Agent")
     start_time = time.time()
     
-    my_key = key_manager.get_api_key_for_role("WORKER_9")
+    my_key = key_manager.get_api_key_for_role("SECURITY_AUDITOR")
     # System instruction tailored for this agent
-    sys_prompt = f"You are the security_auditor agent. Your job is to fulfill the user's request expertly."
+    sys_prompt = "You are the Senior Application Security Auditor Agent. Your mission is to audit source code, identify vulnerabilities (OWASP Top 10, CWE), assess attack surfaces, and recommend robust remediations."
     
     # Call the GenAI LLM
     content = call_gemini(

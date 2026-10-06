@@ -12,9 +12,9 @@ def seo_specialist_agent(task_data: InputData) -> AgentResponse:
     logger.info("Routing to SEO Specialist Agent")
     start_time = time.time()
     
-    my_key = key_manager.get_api_key_for_role("WORKER_10") # Note: dummy system agent uses 10, let's use it here, wait dummy uses WORKER_10 too. Let's just use WORKER_10 for this one and I'll update dummy system agent if needed. Actually, dummy system agent uses WORKER_10 right now. Let me use WORKER_5 for dummy_system_agent and WORKER_10 for SEO. But dummy is a dummy agent. I can just ignore the clash.
+    my_key = key_manager.get_api_key_for_role("SEO_SPECIALIST")
     # System instruction tailored for this agent
-    sys_prompt = f"You are the seo_specialist agent. Your job is to fulfill the user's request expertly."
+    sys_prompt = "You are the SEO Specialist Agent. Your mission is to optimize digital content, metadata, headings, keyword relevance, and search engine discoverability."
     
     # Call the GenAI LLM
     content = call_gemini(

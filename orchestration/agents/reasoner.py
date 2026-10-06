@@ -14,7 +14,7 @@ def reasoner_agent(task_data: InputData) -> AgentResponse:
     
     my_key = key_manager.get_api_key_for_role("REASONER")
     # System instruction tailored for this agent
-    sys_prompt = f"You are the reasoner agent. Your job is to fulfill the user's request expertly."
+    sys_prompt = "You are the Logical Reasoning & Analysis Agent. Your mission is to provide rigorous step-by-step reasoning, critical analysis, mathematical deduction, and objective evaluation."
     
     # Call the GenAI LLM
     content = call_gemini(

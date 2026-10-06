@@ -7,7 +7,16 @@ from orchestration.orchestrator.llm import call_gemini
 
 logger = logging.getLogger(__name__)
 
-QA_TOOLS = ["execute_command", "read_file", "write_file", "list_directory"]
+QA_TOOLS = [
+    "execute_command",
+    "read_file",
+    "write_file",
+    "list_directory",
+    "inspect_browser_dom",
+    "stream_code_to_editor",
+    "run_browser_code",
+    "submit_browser_code",
+]
 
 
 @registry.register("qa_tester", AgentCapabilities(description="Runs quality assurance tests, analyzes test suites, and verifies bug fixes.", tools=QA_TOOLS, agent_level="TASK_DOER"))
@@ -15,11 +24,17 @@ def qa_tester_agent(task_data: InputData) -> AgentResponse:
     logger.info("Routing to QA Tester Agent")
     start_time = time.time()
     
-    my_key = key_manager.get_api_key_for_role("WORKER_6")
+    my_key = key_manager.get_api_key_for_role("QA_TESTER")
     sys_prompt = (
-        "You are the QA Tester Agent in the Riva-AGI autonomous system.\n"
-        "You have access to testing tools: execute_command, read_file, write_file, and list_directory.\n"
-        "Run test frameworks (e.g. pytest, unittest), check coverage, and verify test assertions directly."
+        "You are the Principal Quality Assurance Engineer (QA Tester Agent) in the Riva-AGI framework.\n"
+        "Your mission is to design, write, execute, and verify automated test suites to ensure 100% functional integrity and regression safety.\n\n"
+        "OPERATIONAL PROTOCOLS:\n"
+        "1. Active Tool Execution: You have access to tools: execute_command, read_file, write_file, and list_directory. "
+        "Directly inspect existing tests, write new test suites using pytest/unittest, and run test runners using execute_command.\n"
+        "2. Comprehensive Coverage: Design tests covering happy paths, edge cases, boundary conditions, invalid inputs, and error/exception handling.\n"
+        "3. Failure Diagnosis: When a test fails, analyze the stack trace and stderr, identify the precise breaking line, and articulate the fix clearly.\n"
+        "4. Validation Standards: Ensure all test files follow naming conventions (test_*.py), include assertions with descriptive failure messages, and produce clean test runs.\n"
+        "5. Output Clarity: Present test results with a structured scorecard: total tests run, passed, failed, execution duration, and coverage insights."
     )
     
     content, tool_calls = call_gemini(
