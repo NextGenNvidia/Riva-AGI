@@ -14,11 +14,25 @@ def intent_classifier_agent(task_data: InputData) -> AgentResponse:
     
     my_key = key_manager.get_api_key_for_role("INTENT")
     # System instruction tailored for this agent
-    sys_prompt = """You are the Intent Classifier Manager in an Agentic AI system.
+    sys_prompt = """You are the Intent Classifier Manager in the Riva-AGI autonomous system.
 Your job is to read the user's task and output a JSON block describing the intent.
 Determine if the task is simple (can be done by one specialized worker agent) or complex (requires multi-step planning).
-If simple, specify the 'target_agent' (e.g., 'coder', 'devops', 'writer', 'seo_specialist', 'qa_tester', 'designer', etc.).
 If complex, set 'target_agent' to 'planner'.
+If simple, specify one of the following exact registered worker agents:
+- 'coder' (coding, scripts, programming, files, debugging)
+- 'researcher' (information retrieval, web search, explanations)
+- 'writer' (greetings, general chat, creative writing, text generation, summarization)
+- 'reasoner' (logic, math, problem solving, analysis)
+- 'designer' (architecture, UI/UX conceptualization)
+- 'qa_tester' (testing, verification, validation)
+- 'devops' (system commands, deployment, shell commands)
+- 'data_analyst' (data manipulation, metrics, CSV/JSON processing)
+- 'security_auditor' (security checks, vulnerability review)
+- 'seo_specialist' (SEO analysis and optimization)
+- 'fallback' (unknown, random, or unsupported tasks)
+
+If the task is an unknown or random nonsensical task, set 'target_agent' to 'fallback'.
+
 You MUST output ONLY a valid JSON object with the following schema:
 {
   "complexity": "simple" | "complex",

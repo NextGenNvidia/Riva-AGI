@@ -29,13 +29,9 @@ venv.bak/
 # Testing & Coverage
 .pytest_cache/
 .coverage
-.coverage.*
-coverage.xml
 htmlcov/
 .tox/
 .nox/
-.mypy_cache/
-.ruff_cache/
 
 # Logs & Databases
 *.log
@@ -49,48 +45,7 @@ htmlcov/
 *.swo
 *~
 .directory
-.kilo/
-.gemini/
-.agents/
-.cursor/
-.windsurf/
 
 # Operating System
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# Scratch artifacts, runtime workspace & documentation dumps
-scratch/
-workspace/
-docs/
-temp/
-tmp/
-*.tmp
-
-# Media & audio/video test dumps
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.webp
-*.webm
-*.mp4
-*.wav
-*.mp3
-*.pcm
-*.eml
-*.msg
-
-# Local test scripts & tools
-capture_photo.py
-sorting.py
-two_sum.py
-calculator.py
-Start_Edge_DOM.bat
-
-# Packaging & Distribution
-build/
-dist/
-*.egg-info/
-*.egg

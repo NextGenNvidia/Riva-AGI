@@ -13,10 +13,10 @@ import os
 import sys
 from pathlib import Path
 
-# Ensure repository root is in sys.path
-_repo_root = str(Path(__file__).resolve().parent.parent)
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+# Ensure parent directory is in sys.path for voice_speech package imports
+_pkg_root = str(Path(__file__).resolve().parent.parent)
+if _pkg_root not in sys.path:
+    sys.path.insert(0, _pkg_root)
 
 from Backend.main import app
 from Backend.routers.voice import audio_websocket_endpoint

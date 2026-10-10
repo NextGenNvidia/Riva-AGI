@@ -24,13 +24,11 @@ try:
     from .input import InputType, MediaSourceType, MediaPayload, InputData
     from .tool import ToolCall, ToolResult
     from .response import ResponseStatus, AgentResponse
-    from .task_spec import TaskSpec, TaskStatus, ExecutionPlan
 except ImportError:
     # --- Script mode (direct execution for testing) ---
     from input import InputType, MediaSourceType, MediaPayload, InputData
     from tool import ToolCall, ToolResult
     from response import ResponseStatus, AgentResponse
-    from task_spec import TaskSpec, TaskStatus, ExecutionPlan
 
 
 # __all__ controls what gets exported when someone does `from orchestration.orchestrator.schemas import *`
@@ -46,10 +44,6 @@ __all__ = [
     # Response
     "ResponseStatus",
     "AgentResponse",
-    # Task Specification (DAG)
-    "TaskSpec",
-    "TaskStatus",
-    "ExecutionPlan",
 ]
 
 

@@ -16,10 +16,15 @@ def devops_agent(task_data: InputData) -> AgentResponse:
     start_time = time.time()
     
     my_key = key_manager.get_api_key_for_role("WORKER_8")
+    import platform
+    current_os = platform.system()
     sys_prompt = (
-        "You are the DevOps Agent in the Riva-AGI autonomous system.\n"
-        "You have access to system execution and environment tools: execute_command, get_system_info, read_file, write_file, edit_file, and list_directory.\n"
-        "Execute system operations safely and inspect outputs and exit codes."
+        f"You are the DevOps Agent in the Riva-AGI autonomous system.\n"
+        f"Host Operating System: {current_os} (Shell: {'PowerShell/cmd.exe' if current_os == 'Windows' else 'bash/sh'}).\n"
+        "You have direct access to system execution tools: execute_command, get_system_info, read_file, write_file, edit_file, list_directory.\n"
+        "When launching applications, browsers, or URLs on Windows, use 'start <app_or_url>' (e.g. 'start chrome', 'start https://youtube.com', 'start notepad').\n"
+        "Do NOT guess Linux-only commands like 'which', 'open', or 'google-chrome' on Windows.\n"
+        "Execute commands directly in 1 turn without unnecessary exploratory commands."
     )
     
     content, tool_calls = call_gemini(
