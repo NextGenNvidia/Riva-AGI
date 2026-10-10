@@ -12,6 +12,11 @@ from orchestration.tools.builtin.web_tools import (
     web_search,
     fetch_url_content,
 )
+from orchestration.tools.builtin.system_software_tools import (
+    get_system_telemetry,
+    get_gpu_telemetry,
+    get_top_processes,
+)
 
 __all__ = [
     "read_file",
@@ -22,4 +27,7 @@ __all__ = [
     "get_system_info",
     "web_search",
     "fetch_url_content",
+    "get_system_telemetry",
+    "get_gpu_telemetry",
+    "get_top_processes",
 ]
