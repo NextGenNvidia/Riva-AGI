@@ -7,10 +7,25 @@ from orchestration.orchestrator.llm import call_gemini
 
 logger = logging.getLogger(__name__)
 
-RESEARCHER_TOOLS = ["web_search", "fetch_url_content", "read_file", "list_directory"]
+RESEARCHER_TOOLS = [
+    "search_knowledge_base",
+    "query_knowledge_with_citations",
+    "list_knowledge_documents",
+    "web_search",
+    "fetch_url_content",
+    "read_file",
+    "list_directory",
+]
 
 
-@registry.register("researcher", AgentCapabilities(description="Handles internet research, documentation extraction, and data gathering.", tools=RESEARCHER_TOOLS, agent_level="TASK_DOER"))
+@registry.register(
+    "researcher",
+    AgentCapabilities(
+        description="Handles internet research, internal vector knowledge base retrieval, and document Q&A.",
+        tools=RESEARCHER_TOOLS,
+        agent_level="TASK_DOER",
+    ),
+)
 def researcher_agent(task_data: InputData) -> AgentResponse:
     logger.info("Routing to Researcher Agent")
     
@@ -19,9 +34,12 @@ def researcher_agent(task_data: InputData) -> AgentResponse:
     
     sys_prompt = (
         "You are the Researcher Agent in the Riva-AGI autonomous system.\n"
-        "You have access to web search, url content fetching, and filesystem tools: web_search, fetch_url_content, read_file, and list_directory.\n"
-        "When asked for current information, external documentation, or research, USE YOUR TOOLS to search the web and fetch live content.\n"
-        "Synthesize facts accurately and provide links/citations."
+        "You have access to both internal knowledge base tools and external research tools:\n"
+        "- Internal Knowledge: search_knowledge_base, query_knowledge_with_citations, list_knowledge_documents.\n"
+        "- Web & Filesystem: web_search, fetch_url_content, read_file, list_directory.\n"
+        "When asked about internal projects, schedules, guidelines, policies, or uploaded documents, ALWAYS query the knowledge base first.\n"
+        "When asked for external or current web information, use web_search and fetch_url_content.\n"
+        "Synthesize facts accurately and always provide clear citations and source references."
     )
     
     content, tool_calls = call_gemini(

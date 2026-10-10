@@ -3,6 +3,7 @@ import os
 import platform
 import re
 import subprocess
+import sys
 from typing import List, Optional
 from orchestration.tools.registry import tool
 
@@ -110,10 +111,13 @@ def get_system_info() -> str:
         Formatted string with system information.
     """
     try:
+        os_platform = "Windows" if os.name == "nt" else platform.system()
+        os_release = platform.release() if os.name != "nt" else (os.environ.get("OS") or "Windows_NT")
+        os_version = sys.version.split()[0]
         info_lines = [
-            f"OS Platform: {platform.system()}",
-            f"OS Release: {platform.release()}",
-            f"OS Version: {platform.version()}",
+            f"OS Platform: {os_platform}",
+            f"OS Release: {os_release}",
+            f"OS Version: {os_version}",
             f"Python Version: {platform.python_version()}",
             f"Current Working Directory: {os.getcwd()}",
         ]

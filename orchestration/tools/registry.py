@@ -59,6 +59,14 @@ class ToolRegistry:
         """Returns the ToolDefinition metadata object for a registered tool."""
         return self._tools.get(name)
 
+    def get(self, name: str) -> Optional[ToolDefinition]:
+        """Returns the ToolDefinition metadata object for a registered tool."""
+        return self._tools.get(name)
+
+    def __contains__(self, name: str) -> bool:
+        """Allows 'tool_name in tool_registry' membership checks."""
+        return name in self._tools
+
     def get_all_tools(self) -> Dict[str, ToolDefinition]:
         """Returns a copy of all registered tool definitions."""
         return dict(self._tools)
