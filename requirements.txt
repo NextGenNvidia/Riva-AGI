@@ -1,5 +1,29 @@
+# ─── Multi-Agent Orchestration (LangGraph) ───────────────────────────────────
 langgraph~=1.2.10
 langchain-core~=1.5.3
 pydantic~=2.13.4
 python-dotenv~=1.1.1
+
+# ─── Central API Server & WebSockets (FastAPI) ───────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+websockets>=13.0
+httpx>=0.27.0
+
+# ─── Hardware & System Monitoring ────────────────────────────────────────────
+psutil>=7.0.0
+
+# ─── RAG & Knowledge Base ────────────────────────────────────────────────────
+pymongo>=4.6.0
+dnspython>=2.7.0
+certifi>=2024.0.0
+anyio>=4.0.0
+
+# ─── Real-Time Voice & Speech Engine (Google GenAI + Audio) ──────────────────
+google-genai>=2.19.0
+numpy>=2.0.0
+
+# ─── Testing & Quality Assurance ─────────────────────────────────────────────
 pytest~=9.1.1
+pytest-asyncio>=1.4.0

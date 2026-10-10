@@ -1,0 +1,9 @@
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class

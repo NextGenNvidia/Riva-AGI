@@ -24,4 +24,4 @@ Write-Host "  RIVA — Real-Time Voice Interface (Voice/Speech Engine)"
 Write-Host "  Server running on http://localhost:8000"
 Write-Host "==============================================================="
 
-python -m voice_speech.web_server
+python -m Backend.main

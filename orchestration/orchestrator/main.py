@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
 
 from orchestration.orchestrator.registry import registry
-from orchestration.orchestrator.state_manager import TaskStateManager, TaskStatus
+from orchestration.orchestrator.state_manager import TaskStateManager, TaskStatus, task_manager
 from orchestration.orchestrator.config import key_manager
 from orchestration.orchestrator.router import classify_intent
 from orchestration import InputData, AgentResponse, ResponseStatus, InputType
@@ -39,9 +39,6 @@ import orchestration.agents.dummy_system_agent
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-
-# Single global State Manager
-task_manager = TaskStateManager()
 
 class AgentState(TypedDict):
     # Now we store the schema-validated objects!
