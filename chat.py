@@ -311,8 +311,14 @@ def execute_direct_tool(command: str):
     raw = parts[1].strip() if len(parts) > 1 else '{}'
     if raw.startswith('{'):
         arguments = json.loads(raw)
-    elif name in {'read_file', 'list_directory', 'execute_command'}:
-        parameter = {'read_file': 'file_path', 'list_directory': 'dir_path', 'execute_command': 'command'}[name]
+    elif name in {'read_file', 'list_directory', 'execute_command', 'verify_code_syntax', 'run_code_tests'}:
+        parameter = {
+            'read_file': 'file_path',
+            'list_directory': 'dir_path',
+            'execute_command': 'command',
+            'verify_code_syntax': 'file_path',
+            'run_code_tests': 'test_path',
+        }[name]
         arguments = {parameter: raw}
     else:
         raise ValueError('Supply tool arguments as a JSON object. Example: tool write_file {"file_path":"a.txt","content":"hello"}')
