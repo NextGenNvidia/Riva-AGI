@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 
+from ..storage.qdrant_storage import get_global_qdrant_store
 from .privacy import PrivacyGateError
 from .pipeline import run_ingestion
 
@@ -19,13 +20,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--source",
         type=str,
         default=os.getenv("RAG_DATA_SOURCE", "data/raw"),
-        help="Path to folder or file (supports .pdf, .docx)",
+        help="Path to folder or file (supports .xlsx, .json, .csv, .md, .txt, .pdf, .png)",
     )
     parser.add_argument(
         "--type",
         type=str,
         default="auto",
-        choices=["auto", "pdf", "word", "doc", "docx"],
+        choices=["auto", "student", "json", "csv", "doc", "pdf", "image", "table"],
         help="Data type format (default: auto)",
     )
     parser.add_argument(
@@ -50,7 +51,66 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Opt-in to redacting detected personal emails and phone numbers instead of failing (PRD S4)",
     )
+    parser.add_argument(
+        "--cloud-vision",
+        action="store_true",
+        help="Opt-in to Google Gemini Cloud Vision for processing images (default: local OCR only)",
+    )
+    parser.add_argument(
+        "--clear",
+        "--delete-all",
+        action="store_true",
+        help="Delete all documents from the Qdrant Cloud collection and reset it empty",
+    )
+    parser.add_argument(
+        "--yes", "-y", "-yes",
+        action="store_true",
+        help="Confirm destructive operations such as --clear without interactive prompt",
+    )
     return parser
+
+
+def handle_clear_action(args: argparse.Namespace) -> None:
+    """Executes collection purge with safety guards against live production clearing."""
+    store = get_global_qdrant_store()
+    if not store.is_available():
+        print("[ERROR] Qdrant storage is unreachable. Verify Qdrant configuration in .env.")
+        sys.exit(1)
+
+    live_alias = os.getenv("QDRANT_LIVE_COLLECTION", "").strip() or os.getenv("LIVE_COLLECTION", "").strip()
+    if live_alias and store.collection_name.strip().lower() == live_alias.lower():
+        logger.error(f"Refusing to clear live production collection '{store.collection_name}'.")
+        print(
+            f"[ERROR] Refusing to clear collection '{store.collection_name}' "
+            f"because it matches active LIVE collection alias ({live_alias})."
+        )
+        sys.exit(1)
+
+    if not getattr(args, "yes", False):
+        if sys.stdin.isatty():
+            ans = input(
+                f"Are you sure you want to completely clear target collection '{store.collection_name}'? (yes/no): "
+            ).strip().lower()
+            if ans != "yes":
+                print("[ABORT] Clear cancelled by user.")
+                sys.exit(0)
+        else:
+            print(
+                f"[ERROR] --clear requires confirmation. Pass --yes flag to confirm "
+                f"clearing target collection '{store.collection_name}'."
+            )
+            sys.exit(1)
+
+    ok = store.clear_all()
+    if ok:
+        print(
+            f"[SUCCESS] All documents successfully deleted from Qdrant Cloud "
+            f"(collection: '{store.collection_name}'). The database is completely cleared."
+        )
+        sys.exit(0)
+    else:
+        print(f"[ERROR] Failed to clear Qdrant collection '{store.collection_name}'.")
+        sys.exit(1)
 
 
 def resolve_source_path(raw_source: str) -> Path:
@@ -82,6 +142,9 @@ def main() -> None:
     parser = build_arg_parser()
     args = parser.parse_args()
 
+    if getattr(args, "clear", False):
+        handle_clear_action(args)
+
     raw_source = (args.source or "").strip(' "\'\r\n\t')
     source_dir = resolve_source_path(raw_source)
 
@@ -93,6 +156,7 @@ def main() -> None:
             batch_size=args.batch_size,
             data_type=args.type,
             redact=args.redact,
+            allow_cloud_vision=args.cloud_vision,
         )
         if not args.dry_run and total == 0:
             sys.exit(1)

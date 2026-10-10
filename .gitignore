@@ -55,5 +55,7 @@ Thumbs.db
 rag_knowledge/data/raw/*
 !rag_knowledge/data/raw/.gitkeep
 rag_knowledge/data/processed/
-data/
+/data/
+!voice_speech/engine/config/prompt_system/data/**
 !rag_knowledge/.env.example
+

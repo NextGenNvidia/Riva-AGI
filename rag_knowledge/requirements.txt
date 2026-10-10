@@ -1,5 +1,21 @@
-qdrant-client>=1.9.0
-fastembed>=0.2.0
-pypdf>=4.0.0
-python-docx>=1.1.0
+# rag_knowledge Runtime Requirements
+# Gemini client and core RAG orchestration use standard Python 3.10+ library (urllib, json, asyncio, re).
+# Vector database storage powered by Qdrant Cloud and FastEmbed (ONNX).
+
+# Environment variable loading for standalone usage
 python-dotenv>=1.0.0
+
+# Qdrant Vector Database & Local Fast Embeddings
+qdrant-client>=1.12.0
+fastembed>=0.4.0
+
+# Excel, Word & PDF Data Ingestion Pipeline
+openpyxl>=3.1.0
+pypdf>=5.0.0
+python-docx>=1.1.0
+pandas>=2.0.0
+
+# Optional OCR & Vision
+Pillow>=10.0.0
+pytesseract>=0.3.10
+

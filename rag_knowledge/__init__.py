@@ -57,6 +57,7 @@ from .storage.qdrant_storage import QdrantKnowledgeStore
 from . import clients, ingestion, prompts, retrieval, service, storage
 from .retrieval import retriever
 from .clients import gemini_client
+from .ingestion import ingest
 
 __all__ = [
     "KnowledgeRetriever",
@@ -75,4 +76,5 @@ __all__ = [
     "service",
     "retriever",
     "gemini_client",
+    "ingest",
 ]

@@ -1,49 +1,64 @@
 # RAG Knowledge Subsystem (`rag_knowledge`)
 
-A modular Retrieval-Augmented Generation (RAG) knowledge subsystem powered by **Qdrant Vector Database** and **Google Gemini**.
+Voice-optimized Retrieval-Augmented Generation (RAG) service powered by **Qdrant Vector Database** and **Google Gemini**.
 
 ---
 
 ## 1. Setup
 
-### Installation
-Install the package requirements:
-```bash
-pip install -r rag_knowledge/requirements.txt
-```
+Copy `.env.example` to `.env` in the root or package directory:
 
-### Configuration
-Copy `.env.example` to `.env` in the project root or package directory:
 ```bash
 cp rag_knowledge/.env.example rag_knowledge/.env
 ```
 
 Configure your environment variables in `.env`:
+
 ```ini
-# Google Gemini API Configuration
+# Google Gemini (Separate keys prevent token/quota exhaustion)
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-flash-lite-latest
+GEMINI_VISION_API_KEY=your_gemini_vision_api_key_here  # Optional: dedicated key for vision OCR
+GEMINI_TEXT_API_KEY=your_gemini_text_api_key_here      # Optional: dedicated key for answer synthesis
 
 # Qdrant Vector Database
 QDRANT_URL=https://your-cluster-id.us-east-1-1.aws.cloud.qdrant.io
 QDRANT_API_KEY=your_qdrant_api_key_here
 QDRANT_COLLECTION=riva_knowledge
-QDRANT_TIMEOUT=60.0
-QDRANT_BATCH_SIZE=50
+QDRANT_TIMEOUT=60.0                                    # WAN connection timeout (seconds)
+QDRANT_BATCH_SIZE=50                                   # Upsert chunk size
+
+# Security & Data Integrity
+RAG_ENTITY_SECRET=your_hmac_secret_salt_here           # Salt for hashing student IDs
+LIVE_COLLECTION=riva_knowledge_prod                    # Safeguard: prevents accidental --clear on production
+
+# Image OCR & Multimodal Vision
+ALLOW_CLOUD_VISION=true                                # Opt-in to Gemini Cloud Vision OCR (or pass --cloud-vision)
+# ALLOW_CLOUD_VISION_ALLOWLIST=raw/scans,diagrams      # Optional: whitelist specific paths for cloud vision
+```
+
+Install requirements:
+```bash
+pip install -r rag_knowledge/requirements.txt
 ```
 
 ---
 
-## 2. Ingestion (Document Processing & Indexing)
+## 2. Ingestion (Data Processing & Indexing)
 
-Ingest document files or entire folders into the vector database using `rag_knowledge.ingestion`:
+Ingest raw files or entire directories into the vector database using `rag_knowledge.ingestion`:
 
 ```bash
-# Ingest documents with automated privacy redaction
-python -m rag_knowledge.ingestion --source "rag_knowledge/data/raw/handbook.pdf" --redact
+# Ingest with automated PII redaction (recommended for student records)
+python -m rag_knowledge.ingestion --source "rag_knowledge/data/raw/" --redact
 
 # Dry run: parse and inspect documents without uploading to Qdrant
 python -m rag_knowledge.ingestion --source "rag_knowledge/data/raw/" --dry-run
+
+# Opt-in to Google Gemini Cloud Vision for OCR on complex diagrams/scans
+python -m rag_knowledge.ingestion --source "rag_knowledge/data/raw/" --cloud-vision --redact
+
+# Clear target collection (requires confirmation or --yes / -y)
+python -m rag_knowledge.ingestion --clear --yes
 ```
 
 ### CLI Ingestion Options
@@ -51,16 +66,19 @@ python -m rag_knowledge.ingestion --source "rag_knowledge/data/raw/" --dry-run
 | Flag | Description |
 | :--- | :--- |
 | `--source <path>` | Path to a single file or directory of documents to ingest |
-| `--type <format>` | File format (`auto`, `pdf`, `word`, `docx`) |
-| `--redact` | Automatically redacts detected personal emails and phone numbers (fail-closed privacy gate) |
-| `--batch-size <N>` | Points per upsert batch (default: `50`, with automatic sub-chunking on timeout) |
+| `--redact` | Automatically redacts detected emails and phone numbers (PRD S4 privacy gate) |
+| `--cloud-vision` | Opt-in to Gemini Cloud Vision for images (or set `ALLOW_CLOUD_VISION=true` in `.env`) |
+| `--batch-size <N>` | Points per upsert batch (default: `50`, with automatic sub-chunking on WAN timeout) |
 | `--limit <N>` | Ingest only the first `N` extracted documents |
-| `--dry-run` | Extract, parse, and preview documents without modifying vector storage |
+| `--dry-run` | Extract, chunk, and preview documents without modifying vector storage |
+| `--clear`, `--delete-all` | Empties the target collection in Qdrant (blocked if matching `LIVE_COLLECTION`) |
+| `--yes`, `-y` | Skips interactive confirmation prompt for `--clear` |
 
 ### Supported Data Formats
 
-- **PDF Documents (`.pdf`)**: Page-aware extraction, table row parsing, and schedule/event detection.
-- **Word Documents (`.docx`)**: Hierarchical section and table parsing based on headings ($H1$-$H3$).
+- **Spreadsheets (`.xlsx`, `.xls`, `.csv`, `.tsv`)**: Merges student master sheets and category rosters with opaque hash joins.
+- **Documents (`.pdf`, `.docx`, `.txt`, `.md`, `.json`)**: Extracts text sections, headings, tables, and lists.
+- **Images (`.png`, `.jpg`, `.jpeg`, `.webp`)**: Local Tesseract OCR (if installed in system PATH) or multimodal Gemini Cloud Vision (enabled via `--cloud-vision` CLI flag or `ALLOW_CLOUD_VISION=true` in `.env`).
 
 ---
 
@@ -69,10 +87,10 @@ python -m rag_knowledge.ingestion --source "rag_knowledge/data/raw/" --dry-run
 ### Terminal CLI
 ```bash
 # Query with ranked retrieval matches displayed
-python -m rag_knowledge "What activities are scheduled for orientation?"
+python -m rag_knowledge "Tell me about Astitva Gupta"
 
 # Query in quiet mode (returns answer only)
-python -m rag_knowledge "What is the policy for club registration?" -q
+python -m rag_knowledge "What is the policy for hackathon registration?" -q
 
 # List indexed documents
 python -m rag_knowledge --list
@@ -84,7 +102,7 @@ import asyncio
 from rag_knowledge import query_rag
 
 async def main():
-    response = await query_rag("When is the orientation session?")
+    response = await query_rag("Who won the first year coding competition?")
     print(response)
 
 asyncio.run(main())
@@ -92,12 +110,12 @@ asyncio.run(main())
 
 ---
 
-## 4. Architecture & Security Highlights
+## 4. Security & Architecture Highlights
 
-- **Privacy Gate**: Validates all documents prior to indexing against personal contact details (emails, phone numbers). Direct unredacted ingestion of PII is blocked unless `--redact` is passed.
-- **Hybrid Vector Retrieval**: Combines dense ANN cosine similarity search with exact identifier and title keyword boosting for high precision.
-- **Grounded Answer Synthesis**: Google Gemini answers user questions grounded in retrieved facts, returning explicit source file and page citations.
+- **Privacy Gate & Entity Joiner**: PII such as contact details (emails, phone numbers) are stripped or hashed via `RAG_ENTITY_SECRET`. Direct unredacted ingestion is blocked by default unless `--redact` is passed.
+- **Quota Separation**: Separate API keys for Vision and Text synthesis avoid starving conversational tokens during large document ingestions.
 - **WAN Resilience**: Adaptive upsert retry logic with automated half-batch sub-chunking prevents socket timeouts against cloud vector instances.
+- **Production Safeguards**: Destructive actions like `--clear` are blocked when pointing at `LIVE_COLLECTION`.
 
 ---
 
