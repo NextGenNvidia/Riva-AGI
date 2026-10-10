@@ -50,6 +50,11 @@ class AgentRegistry:
         logger.warning(f"Attempted to retrieve unregistered agent: {name}")
         return None
 
+    def get_capabilities(self, name: str) -> Optional[AgentCapabilities]:
+        """Retrieve an agent's capabilities by name."""
+        agent_data = self._agents.get(name)
+        return agent_data.get("capabilities") if agent_data else None
+
     def get_all_capabilities(self) -> Dict[str, AgentCapabilities]:
         """Return a mapping of all registered agents and their capabilities."""
         return {name: data["capabilities"] for name, data in self._agents.items()}
