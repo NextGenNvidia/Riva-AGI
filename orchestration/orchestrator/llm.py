@@ -19,31 +19,38 @@ from orchestration.orchestrator.config import key_manager
 
 logger = logging.getLogger(__name__)
 
-# High-quota, active models for free-tier resilience (1,500 RPD / 15-30 RPM)
-PRIMARY_MODEL = "gemini-3.5-flash-lite"
-FALLBACK_MODELS = ["gemini-2.5-flash-lite", "gemini-3.8-flash", "gemini-3.5-flash"]
+import os
+
+def _resolve_model(default_model: str = "gemini-3.1-flash-lite") -> str:
+    env_m = os.getenv("GEMINI_ORCHESTRATOR_MODEL") or os.getenv("GEMINI_MODEL")
+    if env_m and not any(bad in env_m for bad in ["live-preview", "preview-tts", "transcribe", "image", "embedding"]):
+        return env_m
+    return default_model
+
+PRIMARY_MODEL = _resolve_model("gemini-3.1-flash-lite")
+FALLBACK_MODELS = ["gemini-3.1-flash-lite-preview", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-3-flash-preview", "gemini-3.5-flash-lite"]
 
 MODEL_MAPPING = {
     # Level 2 Managers (High Reasoning & Orchestration)
-    "intent_classifier": "gemini-3.5-flash-lite",
-    "executor": "gemini-3.5-flash-lite",
-    "planner": "gemini-3.5-flash-lite",
-    "reviewer": "gemini-3.5-flash-lite",
+    "intent_classifier": PRIMARY_MODEL,
+    "executor": PRIMARY_MODEL,
+    "planner": PRIMARY_MODEL,
+    "reviewer": PRIMARY_MODEL,
     
     # Level 3 Complex Workers (Balanced)
-    "coder": "gemini-3.5-flash-lite",
-    "reasoner": "gemini-3.5-flash-lite",
-    "devops": "gemini-3.5-flash-lite",
-    "security_auditor": "gemini-3.5-flash-lite",
+    "coder": PRIMARY_MODEL,
+    "reasoner": PRIMARY_MODEL,
+    "devops": PRIMARY_MODEL,
+    "security_auditor": PRIMARY_MODEL,
     
     # Level 3 Standard Workers (Fast Execution)
-    "writer": "gemini-3.5-flash-lite",
-    "designer": "gemini-3.5-flash-lite",
-    "qa_tester": "gemini-3.5-flash-lite",
-    "data_analyst": "gemini-3.5-flash-lite",
-    "seo_specialist": "gemini-3.5-flash-lite",
-    "researcher": "gemini-3.5-flash-lite",
-    "dummy_system": "gemini-3.5-flash-lite"
+    "writer": PRIMARY_MODEL,
+    "designer": PRIMARY_MODEL,
+    "qa_tester": PRIMARY_MODEL,
+    "data_analyst": PRIMARY_MODEL,
+    "seo_specialist": PRIMARY_MODEL,
+    "researcher": PRIMARY_MODEL,
+    "dummy_system": PRIMARY_MODEL
 }
 
 

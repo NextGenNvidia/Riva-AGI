@@ -8,10 +8,10 @@ import os
 import sys
 from pathlib import Path
 
-# Ensure parent directory is in sys.path for voice_speech package imports
-_pkg_root = str(Path(__file__).resolve().parent.parent)
-if _pkg_root not in sys.path:
-    sys.path.insert(0, _pkg_root)
+# Ensure project root is in sys.path so voice_speech and orchestration imports work
+_PROJECT_ROOT = str(Path(__file__).resolve().parent.parent)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response

@@ -66,9 +66,22 @@ def execute_command(command: str, timeout_seconds: int = 30) -> str:
         logger.warning(f"Blocked dangerous command from execution: {command}")
         return f"Error: Command blocked by security blacklist: '{command}'"
 
+    # Cross-platform normalization for Windows
+    cmd_to_run = command
+    if platform.system() == "Windows":
+        cmd_trimmed = command.strip()
+        if cmd_trimmed.startswith("open http"):
+            cmd_to_run = "start " + cmd_trimmed[5:]
+        elif cmd_trimmed.startswith("google-chrome "):
+            cmd_to_run = "start chrome " + cmd_trimmed[14:]
+        elif cmd_trimmed.startswith("xdg-open "):
+            cmd_to_run = "start " + cmd_trimmed[9:]
+        elif cmd_trimmed.startswith("which "):
+            cmd_to_run = "where " + cmd_trimmed[6:]
+
     try:
         result = subprocess.run(
-            command,
+            cmd_to_run,
             shell=True,
             capture_output=True,
             text=True,
