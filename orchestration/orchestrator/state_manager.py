@@ -94,6 +94,10 @@ class TaskStateManager:
         return self._tasks.get(task_id)
 
 
+# Global singleton instance for task state tracking
+task_manager = TaskStateManager()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     # Test with a 3-step dummy task running across 2+ agents

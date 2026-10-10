@@ -28,4 +28,4 @@ echo "  RIVA — Real-Time Voice Interface (Voice/Speech Engine)"
 echo "  Server running on http://localhost:8000"
 echo "==============================================================="
 
-exec python -m voice_speech.web_server
+exec python -m Backend.main

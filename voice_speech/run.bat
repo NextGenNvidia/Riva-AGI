@@ -24,4 +24,4 @@ echo   RIVA — Real-Time Voice Interface (Voice/Speech Engine)
 echo   Server running on http://localhost:8000
 echo ===============================================================
 
-python -m voice_speech.web_server
+python -m Backend.main
