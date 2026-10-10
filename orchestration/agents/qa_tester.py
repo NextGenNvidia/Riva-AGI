@@ -7,10 +7,18 @@ from orchestration.orchestrator.llm import call_gemini
 
 logger = logging.getLogger(__name__)
 
-QA_TOOLS = ["execute_command", "read_file", "write_file", "list_directory"]
+QA_TOOLS = [
+    "execute_command",
+    "read_file",
+    "write_file",
+    "list_directory",
+    "verify_code_syntax",
+    "run_code_tests",
+    "diagnose_test_failure",
+]
 
 
-@registry.register("qa_tester", AgentCapabilities(description="Runs quality assurance tests, analyzes test suites, and verifies bug fixes.", tools=QA_TOOLS, agent_level="TASK_DOER"))
+@registry.register("qa_tester", AgentCapabilities(description="Runs quality assurance tests, AST syntax checks, analyzes test suites, and diagnoses bug fixes.", tools=QA_TOOLS, agent_level="TASK_DOER"))
 def qa_tester_agent(task_data: InputData) -> AgentResponse:
     logger.info("Routing to QA Tester Agent")
     start_time = time.time()
@@ -18,8 +26,10 @@ def qa_tester_agent(task_data: InputData) -> AgentResponse:
     my_key = key_manager.get_api_key_for_role("WORKER_6")
     sys_prompt = (
         "You are the QA Tester Agent in the Riva-AGI autonomous system.\n"
-        "You have access to testing tools: execute_command, read_file, write_file, and list_directory.\n"
-        "Run test frameworks (e.g. pytest, unittest), check coverage, and verify test assertions directly."
+        "You have access to testing and verification tools:\n"
+        "- File and Command: execute_command, read_file, write_file, list_directory.\n"
+        "- Verification & Diagnostics: verify_code_syntax, run_code_tests, diagnose_test_failure.\n"
+        "Run test frameworks (e.g. pytest), verify code AST syntax, diagnose failure tracebacks, and recommend precise fixes."
     )
     
     content, tool_calls = call_gemini(

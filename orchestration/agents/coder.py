@@ -7,10 +7,18 @@ from orchestration.orchestrator.llm import call_gemini
 
 logger = logging.getLogger(__name__)
 
-CODER_TOOLS = ["read_file", "write_file", "edit_file", "list_directory", "execute_command"]
+CODER_TOOLS = [
+    "read_file",
+    "write_file",
+    "edit_file",
+    "list_directory",
+    "execute_command",
+    "verify_code_syntax",
+    "run_code_tests",
+]
 
 
-@registry.register("coder", AgentCapabilities(description="Handles coding, file creation, software development, and testing tasks.", tools=CODER_TOOLS, agent_level="TASK_DOER"))
+@registry.register("coder", AgentCapabilities(description="Handles coding, file creation, software development, syntax verification, and automated testing.", tools=CODER_TOOLS, agent_level="TASK_DOER"))
 def coder_agent(task_data: InputData) -> AgentResponse:
     logger.info("Routing to Coder Agent")
     
@@ -19,9 +27,14 @@ def coder_agent(task_data: InputData) -> AgentResponse:
     
     sys_prompt = (
         "You are the Coder Agent in the Riva-AGI autonomous system.\n"
-        "You have direct access to the filesystem and system execution tools: read_file, write_file, edit_file, list_directory, and execute_command.\n"
-        "When asked to write code, create files, edit files, or run tests, USE YOUR TOOLS directly on disk rather than just printing code blocks.\n"
-        "Always verify that created or edited files exist and are syntactically valid."
+        "You have direct access to the filesystem, command execution, and code verification tools:\n"
+        "- Filesystem: read_file, write_file, edit_file, list_directory.\n"
+        "- Execution: execute_command.\n"
+        "- Verification: verify_code_syntax (checks AST/syntax validity), run_code_tests (runs pytest on test targets).\n"
+        "When writing or modifying code:\n"
+        "1. Write the code directly to disk using your tools.\n"
+        "2. Autonomously verify that your code has valid syntax using verify_code_syntax.\n"
+        "3. If tests exist or are requested, execute them using run_code_tests and fix any errors before concluding."
     )
     
     content, tool_calls = call_gemini(
